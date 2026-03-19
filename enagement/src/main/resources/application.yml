@@ -6,21 +6,18 @@ spring:
   application:
     name: engagement-service
 
-  config:
-    import: "optional:file:.env[.properties]"
-
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://dpg-d6u17rq4d50c73cjtorg-a.singapore-postgres.render.com:5432/engagementdb
+    username: engagementdb_user
+    password: UBCaJzfQi7mQjn4S3T5JIYwcfs6Mjpbm
 #    driver-class-name: com.mysql.cj.jdbc.Driver
     driver-class-name: org.postgresql.Driver
 
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: ${DDL_AUTO:update}
-    show-sql: ${SHOW_SQL:false}
+      ddl-auto: update
+    show-sql: false
 
 #  mail:
 #    host: smtp.gmail.com
@@ -75,7 +72,7 @@ eureka:
 
 services:
   product-service:
-    url: ${PRODUCT_SERVICE_URL}
+    url: https://productservice-1nk8.onrender.com
 
 springdoc:
   api-docs:
