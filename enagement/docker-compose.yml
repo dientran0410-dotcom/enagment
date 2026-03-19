@@ -1,17 +1,16 @@
 services:
   report-db:
-    image: mysql:8.0
-    container_name: customer-db
+    image: postgres:15
+    container_name: engagement-db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: customer_service_db
-      MYSQL_USER: customer_user
-      MYSQL_PASSWORD: customer_pass
+      POSTGRES_DB: engagement_service_db
+      POSTGRES_USER: engagement_user
+      POSTGRES_PASSWORD: engagement_pass
     ports:
-      - "3308:3306"
+      - "5432:5432"
     volumes:
-      - customer_db_data:/var/lib/mysql # This name must match...
+      - engagement_db_data:/var/lib/postgresql/data
 
 volumes:
-  customer_db_data: # ...this name exactly!
+  engagement_db_data:
