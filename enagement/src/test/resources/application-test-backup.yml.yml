@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+
+# JWT properties (top-level) required by JwtServiceImp
+jwt:
+  secret-test: c2VjdXJlX3Rlc3Rfc2VjcmV0X2tleV9mb3JfdGVzdF9sb25nX3N0cmluZw==
+  access-token-expiration-test: 3600000
+  refresh-token-expiration-test: 86400000

@@ -1,0 +1,17 @@
+services:
+  report-db:
+    image: mysql:8.0
+    container_name: customer-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: customer_service_db
+      MYSQL_USER: customer_user
+      MYSQL_PASSWORD: customer_pass
+    ports:
+      - "3308:3306"
+    volumes:
+      - customer_db_data:/var/lib/mysql # This name must match...
+
+volumes:
+  customer_db_data: # ...this name exactly!
