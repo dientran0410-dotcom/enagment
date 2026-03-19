@@ -1,6 +1,13 @@
+server:
+  address: 0.0.0.0
+  port: ${PORT:8080}
+
 spring:
   application:
-    name: customer-service
+    name: engagement-service
+
+  config:
+    import: "optional:file:.env[.properties]"
 
   datasource:
     url: ${DB_URL}
@@ -8,54 +15,61 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
-  config:
-    import: "optional:file:.env[.properties]"
-
   jpa:
     hibernate:
-      ddl-auto: ${DDL_AUTO}
-    show-sql: ${SHOW_SQL}
+      ddl-auto: ${DDL_AUTO:update}
+    show-sql: ${SHOW_SQL:false}
 
-  mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME}
-    password: ${MAIL_PASSWORD}
-    properties:
-      mail:
-        smtp:
-          auth: true
-          starttls:
-            enable: true
-          ssl:
-            trust: smtp.gmail.com
+#  mail:
+#    host: smtp.gmail.com
+#    port: 587
+#    username: ${MAIL_USERNAME}
+#    password: ${MAIL_PASSWORD}
+#    properties:
+#      mail:
+#        smtp:
+#          auth: true
+#          starttls:
+#            enable: true
+#          ssl:
+#            trust: smtp.gmail.com
 
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-      properties:
-        spring.json.add.type.headers: true
-
-server:
-  port: ${SERVER_PORT}
-
-jwt:
-  secret: ${JWT_SECRET}
-  access-token-expiration: ${ACCESS_TOKEN_EXPIRATION}
-  refresh-token-expiration: ${REFRESH_TOKEN_EXPIRATION}
+#  kafka:
+#    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+#    producer:
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+#      properties:
+#        spring.json.add.type.headers: true
+#
+#jwt:
+#  secret: ${JWT_SECRET}
+#  access-token-expiration: ${ACCESS_TOKEN_EXPIRATION}
+#  refresh-token-expiration: ${REFRESH_TOKEN_EXPIRATION}
 
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_URL}
+      defaultZone: ${EUREKA_SERVER_URL:${EUREKA_URL:https://microservice-i7nc.onrender.com/eureka/}}
     fetch-registry: true
     register-with-eureka: true
+    healthcheck:
+      enabled: true
+    instance-info-replication-interval-seconds: 30
+    registry-fetch-interval-seconds: 10
+
   instance:
-    prefer-ip-address: true
-    instance-id: ${spring.application.name}:${server.port}
-    hostname: ${spring.application.name}
+    prefer-ip-address: false
+    hostname: ${RENDER_EXTERNAL_HOSTNAME:localhost}
+    secure-port: 443
+    secure-port-enabled: true
+    non-secure-port-enabled: false
+    status-page-url: https://${RENDER_EXTERNAL_HOSTNAME:localhost}/actuator/info
+    health-check-url: https://${RENDER_EXTERNAL_HOSTNAME:localhost}/actuator/health
+    home-page-url: https://${RENDER_EXTERNAL_HOSTNAME:localhost}/
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+    instance-id: ${spring.application.name}:${RENDER_EXTERNAL_HOSTNAME:localhost}
 
 services:
   product-service:
@@ -66,3 +80,17 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
