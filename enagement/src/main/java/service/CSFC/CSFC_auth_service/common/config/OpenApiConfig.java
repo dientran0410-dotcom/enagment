@@ -29,11 +29,6 @@ public class OpenApiConfig {
                                 .email("support@group5.com"))
                         .license(new License()
                                 .name("Apache 2.0")
-                                .url("https://www.apache.org/licenses/LICENSE-2.0.html")))
-                .servers(List.of(
-                        new Server()
-                                .url("http://localhost:8081" + contextPath)
-                                .description("Local Development Server")
-                ));
+                                .url("https://www.apache.org/licenses/LICENSE-2.0.html")));
     }
 }
