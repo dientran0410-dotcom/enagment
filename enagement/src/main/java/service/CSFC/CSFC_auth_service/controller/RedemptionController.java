@@ -24,7 +24,7 @@ public class RedemptionController {
 
     private final RedemptionService redemptionService;
 
-    @PreAuthorize("hasAnyAuthority('STAFF','ADMIN','CUSTOMER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
     @PostMapping("/confirm/{rewardId}")
     public ResponseEntity<ApiResponse<RedemptionResponse>> confirmRedeem(
             @PathVariable Long rewardId
@@ -38,7 +38,7 @@ public class RedemptionController {
         );
     }
 
-    @PreAuthorize("hasAnyAuthority('STAFF','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
     @GetMapping("/confirm/{code}")
     public ResponseEntity<?> checkQRCode(@PathVariable String code) {
 
@@ -96,7 +96,7 @@ public class RedemptionController {
         );
     }
 
-    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
     @GetMapping("/get-all")
     public ResponseEntity<ApiResponse<List<RedemptionResponse>>> getAllRedemptions() {
 
@@ -107,7 +107,7 @@ public class RedemptionController {
         ));
     }
 
-    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF','CUSTOMER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<RedemptionResponse>> getRedemptionById(@PathVariable Long id) {
 //        if (isCustomer && !redemption.getCustomerId().equals(currentUserId)) {

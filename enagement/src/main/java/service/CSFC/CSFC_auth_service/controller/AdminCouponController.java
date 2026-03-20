@@ -33,7 +33,7 @@ public class AdminCouponController {
             summary = "Generate Bulk Coupon Codes",
             description = "Generate multiple unique coupon codes for a promotion. Supports bulk insert up to 10,000 codes with high performance and duplicate checking."
     )
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<GenerateCouponResponse> generateCoupons(
             @Valid @RequestBody GenerateCouponRequest request) {
         try {
@@ -53,7 +53,7 @@ public class AdminCouponController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/validate/{code}")
     @Operation(
             summary = "Validate Coupon Code",
@@ -66,7 +66,7 @@ public class AdminCouponController {
         return ResponseEntity.ok(isValid);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/stats/{promotionId}")
     @Operation(
             summary = "Get Coupon Statistics",
@@ -81,7 +81,7 @@ public class AdminCouponController {
         return ResponseEntity.ok(stats);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<CouponResponse>> updateCoupon(
             @PathVariable Long id,
@@ -94,7 +94,7 @@ public class AdminCouponController {
         );
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public void deleteCoupon(@PathVariable Long id) {
         couponService.deleteCoupon(id);

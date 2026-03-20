@@ -25,7 +25,7 @@ public class PointsBalanceController {
 
     private final PointsBalanceService pointsBalanceService;
 
-    @PreAuthorize("hasAnyAuthority('CUSTOMER','STAFF','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
     @GetMapping("/balance")
     @Operation(summary = "Get Points Balance (Query Params)",
                description = "Retrieve current points balance and tier information for a customer at a specific franchise using query parameters")
@@ -50,7 +50,7 @@ public class PointsBalanceController {
         return ResponseEntity.ok(pointsBalance);
     }
 
-    @PreAuthorize("hasAnyAuthority('CUSTOMER','STAFF','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
     @PostMapping("/balance")
     @Operation(summary = "Get Points Balance (Request Body)",
                description = "Retrieve current points balance and tier information for a customer at a specific franchise using request body")

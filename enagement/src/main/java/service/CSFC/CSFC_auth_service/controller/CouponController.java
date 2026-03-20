@@ -28,7 +28,7 @@ public class CouponController {
     private final CouponCodeGeneratorService couponCodeGeneratorService;
 
 
-    @PreAuthorize("hasAnyAuthority('CUSTOMER','STAFF','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
     @PostMapping("/apply")
     public ApiResponse<ApplyCouponResponse> apply(@RequestBody ApplyCouponRequest req){
         ApplyCouponResponse result = couponService.applyCoupon(
@@ -41,7 +41,7 @@ public class CouponController {
         );
     }
 
-    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
     @GetMapping("/get-all")
     public ResponseEntity<ApiResponse<List<Coupon>>> getAll()
     {
@@ -51,7 +51,7 @@ public class CouponController {
         );
     }
 
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("create")
     public ResponseEntity<ApiResponse<CouponResponse>> createCoupon(@RequestBody CouponRequest request) {
         CouponResponse response = couponService.createCoupon(request);
@@ -61,7 +61,7 @@ public class CouponController {
         );
     }
 
-    @PreAuthorize("hasAnyAuthority('CUSTOMER','STAFF','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
     @PostMapping("/generate-qr")
     public ResponseEntity<ApiResponse<CouponCodeResponse>> generateQr(
             @RequestParam String code) {
@@ -76,7 +76,7 @@ public class CouponController {
         );
     }
 
-    @PreAuthorize("hasAnyAuthority('CUSTOMER','STAFF','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
     @GetMapping("/{code}")
     public ResponseEntity<ApiResponse<CouponCodeResponse>> getCouponByCode(@PathVariable String code) {
         CouponCodeResponse result = couponCodeGeneratorService.getCouponCode(code);

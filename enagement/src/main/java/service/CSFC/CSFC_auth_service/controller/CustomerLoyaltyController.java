@@ -19,7 +19,7 @@ import java.util.List;
 public class CustomerLoyaltyController {
     private final LoyaltyService loyaltyService;
 
-    @PreAuthorize("hasAnyAuthority('CUSTOMER','STAFF','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
     @GetMapping("/customers/{customerId}/franchise/{franchiseId}")
     public ResponseEntity<CustomerEngagementResponse> getCustomerEngagement(
             @PathVariable Long customerId,
@@ -31,7 +31,7 @@ public class CustomerLoyaltyController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("hasAnyAuthority('CUSTOMER','STAFF','ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
     @GetMapping("/customers/{customerId}/franchise/{franchiseId}/transactions")
     public ResponseEntity<List<TransactionHistoryResponse>> getTransactionHistory(
             @PathVariable Long customerId,
@@ -43,7 +43,7 @@ public class CustomerLoyaltyController {
         return ResponseEntity.ok(transactions);
     }
 
-    @PreAuthorize("hasAuthority('CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/redeem")
     public ResponseEntity<RedeemResponse> redeem(
             @RequestBody RedeemRequest request
