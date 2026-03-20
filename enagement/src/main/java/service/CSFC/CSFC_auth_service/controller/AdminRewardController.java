@@ -4,6 +4,7 @@ package service.CSFC.CSFC_auth_service.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import service.CSFC.CSFC_auth_service.model.dto.request.RewardRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.ApiResponse;
@@ -18,7 +19,7 @@ import java.util.List;
 public class AdminRewardController {
 
     private final RewardService rewardService;
-
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<ApiResponse<RewardResponse>> createReward(@Valid @ModelAttribute RewardRequest request) {
 
@@ -30,6 +31,7 @@ public class AdminRewardController {
        );
    }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping(value = "/{id}", consumes = "multipart/form-data")
     public ResponseEntity<ApiResponse<RewardResponse>> updateReward(
             @PathVariable Long id,
@@ -42,6 +44,7 @@ public class AdminRewardController {
         );
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<RewardResponse>> deleteReward(@PathVariable Long id) {
 
@@ -52,6 +55,7 @@ public class AdminRewardController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF','CUSTOMER')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<RewardResponse>> getRewardById(@PathVariable Long id) {
 
@@ -61,11 +65,13 @@ public class AdminRewardController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF','CUSTOMER')")
     @GetMapping("/active")
     public List<RewardResponse> getActiveRewards() {
         return rewardService.getActiveRewards();
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF')")
     @GetMapping
     public List<RewardResponse> getAllRewards() {
         return rewardService.getAllReward();

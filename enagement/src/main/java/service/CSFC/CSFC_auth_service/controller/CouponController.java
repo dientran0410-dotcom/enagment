@@ -4,6 +4,7 @@ package service.CSFC.CSFC_auth_service.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import service.CSFC.CSFC_auth_service.model.dto.request.ApplyCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.CouponRequest;
@@ -26,6 +27,8 @@ public class CouponController {
     private final CouponService couponService;
     private final CouponCodeGeneratorService couponCodeGeneratorService;
 
+
+    @PreAuthorize("hasAnyAuthority('CUSTOMER','STAFF','ADMIN')")
     @PostMapping("/apply")
     public ApiResponse<ApplyCouponResponse> apply(@RequestBody ApplyCouponRequest req){
         ApplyCouponResponse result = couponService.applyCoupon(
@@ -38,6 +41,7 @@ public class CouponController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF')")
     @GetMapping("/get-all")
     public ResponseEntity<ApiResponse<List<Coupon>>> getAll()
     {
@@ -46,6 +50,8 @@ public class CouponController {
                 ApiResponse.success(couponService.getAll(),"Get all coupon successfully")
         );
     }
+
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("create")
     public ResponseEntity<ApiResponse<CouponResponse>> createCoupon(@RequestBody CouponRequest request) {
         CouponResponse response = couponService.createCoupon(request);
@@ -55,6 +61,7 @@ public class CouponController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('CUSTOMER','STAFF','ADMIN')")
     @PostMapping("/generate-qr")
     public ResponseEntity<ApiResponse<CouponCodeResponse>> generateQr(
             @RequestParam String code) {
@@ -69,6 +76,7 @@ public class CouponController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('CUSTOMER','STAFF','ADMIN')")
     @GetMapping("/{code}")
     public ResponseEntity<ApiResponse<CouponCodeResponse>> getCouponByCode(@PathVariable String code) {
         CouponCodeResponse result = couponCodeGeneratorService.getCouponCode(code);

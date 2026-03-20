@@ -10,6 +10,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import service.CSFC.CSFC_auth_service.model.constants.PromotionStatus;
 import service.CSFC.CSFC_auth_service.model.dto.request.CreatePromotionRequest;
@@ -26,6 +28,7 @@ public class PromotionController {
 
     private final PromotionService promotionService;
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(
         summary = "Tạo promotion mới",
         description = "Tạo một promotion mới với thông tin franchise, tên, mô tả, thời gian bắt đầu và kết thúc"
@@ -52,6 +55,7 @@ public class PromotionController {
         }
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF')")
     @Operation(
         summary = "Lấy tất cả promotions",
         description = "Lấy danh sách tất cả các promotions không phân biệt status hay franchise"
@@ -65,6 +69,7 @@ public class PromotionController {
         return ResponseEntity.ok(promotions);
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF','CUSTOMER')")
     @Operation(
         summary = "Lấy promotions đang active",
         description = "Lấy danh sách các promotions đang active (trong khoảng thời gian hiện tại). Có thể filter theo franchiseId"
@@ -80,6 +85,7 @@ public class PromotionController {
         return ResponseEntity.ok(promotions);
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF','CUSTOMER')")
     @Operation(
         summary = "Lấy chi tiết promotion",
         description = "Lấy thông tin chi tiết của một promotion theo ID"
@@ -92,10 +98,15 @@ public class PromotionController {
     public ResponseEntity<Promotion> getPromotionById(
             @Parameter(description = "ID của promotion", example = "1")
             @PathVariable Long id) {
+//        if (isCustomer && promotion.getStatus() != ACTIVE) {
+//            throw new AccessDeniedException("Không được xem promotion chưa public");
+//        }
+//
         Promotion promotion = promotionService.getPromotionById(id);
         return ResponseEntity.ok(promotion);
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(
         summary = "Cập nhật status của promotion",
         description = "Cập nhật trạng thái của promotion (DRAFT, ACTIVE, INACTIVE, EXPIRED)"
@@ -114,6 +125,7 @@ public class PromotionController {
         return ResponseEntity.ok(promotion);
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(
         summary = "Cập nhật toàn bộ promotion",
         description = "Cập nhật thông tin promotion (name, description, dates, discountType)"
@@ -132,6 +144,7 @@ public class PromotionController {
         return ResponseEntity.ok(promotion);
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(
         summary = "Xóa promotion",
         description = "Xóa một promotion theo ID"
@@ -148,6 +161,7 @@ public class PromotionController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF','CUSTOMER')")
     @Operation(
         summary = "Lấy promotions theo franchise",
         description = "Lấy tất cả promotions của một franchise cụ thể"
@@ -163,6 +177,7 @@ public class PromotionController {
         return ResponseEntity.ok(promotions);
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF')")
     @Operation(
         summary = "Lấy promotions theo status",
         description = "Lấy danh sách promotions theo trạng thái (DRAFT, ACTIVE, INACTIVE, EXPIRED)"
@@ -178,6 +193,7 @@ public class PromotionController {
         return ResponseEntity.ok(promotions);
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF')")
     @Operation(
         summary = "Lấy danh sách coupons của promotion",
         description = "Lấy tất cả coupons được tạo cho promotion này"
@@ -192,7 +208,7 @@ public class PromotionController {
             @PathVariable Long id) {
         return ResponseEntity.ok(promotionService.getPromotionCoupons(id));
     }
-
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF')")
     @Operation(
         summary = "Lấy thống kê promotion",
         description = "Lấy thống kê chi tiết về promotion (số coupon, số lượt dùng, tổng giảm giá)"
@@ -208,6 +224,7 @@ public class PromotionController {
         return ResponseEntity.ok(promotionService.getPromotionStats(id));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF')")
     @Operation(
         summary = "Dashboard tổng quan promotions",
         description = "Lấy thống kê tổng quan: tổng số promotions, active, sắp hết hạn, top promotions"

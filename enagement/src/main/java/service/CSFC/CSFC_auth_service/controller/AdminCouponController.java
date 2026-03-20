@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import service.CSFC.CSFC_auth_service.model.dto.request.CouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.GenerateCouponRequest;
@@ -32,6 +33,7 @@ public class AdminCouponController {
             summary = "Generate Bulk Coupon Codes",
             description = "Generate multiple unique coupon codes for a promotion. Supports bulk insert up to 10,000 codes with high performance and duplicate checking."
     )
+    @PreAuthorize("hasAnyRole('ADMIN')")
     public ResponseEntity<GenerateCouponResponse> generateCoupons(
             @Valid @RequestBody GenerateCouponRequest request) {
         try {
@@ -51,7 +53,7 @@ public class AdminCouponController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
-
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @GetMapping("/validate/{code}")
     @Operation(
             summary = "Validate Coupon Code",
@@ -64,6 +66,7 @@ public class AdminCouponController {
         return ResponseEntity.ok(isValid);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @GetMapping("/stats/{promotionId}")
     @Operation(
             summary = "Get Coupon Statistics",
@@ -78,6 +81,7 @@ public class AdminCouponController {
         return ResponseEntity.ok(stats);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<CouponResponse>> updateCoupon(
             @PathVariable Long id,
@@ -90,6 +94,7 @@ public class AdminCouponController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @DeleteMapping("/{id}")
     public void deleteCoupon(@PathVariable Long id) {
         couponService.deleteCoupon(id);

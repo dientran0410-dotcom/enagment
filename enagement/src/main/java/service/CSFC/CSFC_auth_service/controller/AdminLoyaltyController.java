@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import service.CSFC.CSFC_auth_service.model.constants.EventType;
 import service.CSFC.CSFC_auth_service.model.constants.TierName;
@@ -28,12 +29,14 @@ import java.util.List;
 public class AdminLoyaltyController {
     private final LoyaltyService loyaltyService;
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF','CUSTOMER')")
     @Operation(summary = "Get all tiers")
     @GetMapping("/tiers")
     public ResponseEntity<List<LoyaltyTierResponse>> getAllTiers() {
         return ResponseEntity.ok(loyaltyService.getAllTiers());
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF')")
     @GetMapping("/customers")
     public ResponseEntity<Page<CustomerEngagementResponse>> getAllCustomers(
             @Parameter(description = "Filter by franchise ID") @RequestParam(required = false) Long franchiseId,
@@ -45,6 +48,7 @@ public class AdminLoyaltyController {
         return ResponseEntity.ok(customers);
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(
             summary = "Tạo Loyalty Tier cố định",
             description = """
@@ -68,6 +72,7 @@ public class AdminLoyaltyController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Update tier theo franchise id và tier name")
     @PutMapping("/{franchiseId}/{tierName}")
     public ResponseEntity<LoyaltyTierResponse> updateTier(
@@ -79,6 +84,7 @@ public class AdminLoyaltyController {
         );
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Delete tier")
     @DeleteMapping("/tiers")
     public ResponseEntity<Void> deleteTier(
@@ -90,6 +96,7 @@ public class AdminLoyaltyController {
 
     // ========== Loyalty Rules ================
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Create rule")
     @PostMapping("/franchises/{franchiseId}/rules")
     public ResponseEntity<LoyaltyRuleResponse> createRule(
@@ -98,12 +105,14 @@ public class AdminLoyaltyController {
         return ResponseEntity.ok(loyaltyService.createRule(franchiseId, request));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF')")
     @Operation(summary = "List all rules across all franchises")
     @GetMapping("/rules")
     public ResponseEntity<List<LoyaltyRuleResponse>> getAllRules() {
         return ResponseEntity.ok(loyaltyService.getAllRules());
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Update rule by franchise and event type")
     @PutMapping("/franchises/{franchiseId}/rules/event/{eventType}")
     public ResponseEntity<LoyaltyRuleResponse> updateRule(
@@ -113,6 +122,7 @@ public class AdminLoyaltyController {
         return ResponseEntity.ok(loyaltyService.updateRule(franchiseId, eventType, request));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @Operation(summary = "Delete rule")
     @DeleteMapping("/franchises/{franchiseId}/rules/event/{eventType}")
     public ResponseEntity<Void> deleteRule(

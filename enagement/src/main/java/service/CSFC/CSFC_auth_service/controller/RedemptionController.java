@@ -3,6 +3,8 @@ package service.CSFC.CSFC_auth_service.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import service.CSFC.CSFC_auth_service.model.constants.RedemptionStatus;
 import service.CSFC.CSFC_auth_service.model.dto.response.ApiResponse;
@@ -22,6 +24,7 @@ public class RedemptionController {
 
     private final RedemptionService redemptionService;
 
+    @PreAuthorize("hasAnyAuthority('STAFF','ADMIN','CUSTOMER')")
     @PostMapping("/confirm/{rewardId}")
     public ResponseEntity<ApiResponse<RedemptionResponse>> confirmRedeem(
             @PathVariable Long rewardId
@@ -35,6 +38,7 @@ public class RedemptionController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('STAFF','ADMIN')")
     @GetMapping("/confirm/{code}")
     public ResponseEntity<?> checkQRCode(@PathVariable String code) {
 
@@ -92,6 +96,7 @@ public class RedemptionController {
         );
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF')")
     @GetMapping("/get-all")
     public ResponseEntity<ApiResponse<List<RedemptionResponse>>> getAllRedemptions() {
 
@@ -102,8 +107,12 @@ public class RedemptionController {
         ));
     }
 
+    @PreAuthorize("hasAnyAuthority('ADMIN','STAFF','CUSTOMER')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<RedemptionResponse>> getRedemptionById(@PathVariable Long id) {
+//        if (isCustomer && !redemption.getCustomerId().equals(currentUserId)) {
+//            throw new AccessDeniedException("Forbidden");
+//        }
         return ResponseEntity.ok(
                 ApiResponse.success(redemptionService.findById(id),"Lây redemption thành công")
         );

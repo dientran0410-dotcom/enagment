@@ -6,6 +6,9 @@ spring:
   application:
     name: engagement-service
 
+  config:
+    import: optional:file:.env[.properties]
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://dpg-d6u17rq4d50c73cjtorg-a.singapore-postgres.render.com:5432/engagementdb}
     username: ${DB_USERNAME:engagementdb_user}
@@ -93,3 +96,10 @@ management:
       enabled: true
     readinessState:
       enabled: true
+auth:
+  service:
+    url: ${AUTH_SERVICE_URL}
+
+rbp:
+  config: ${RBP_CONFIG:}
+
