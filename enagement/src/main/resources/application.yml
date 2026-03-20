@@ -7,10 +7,10 @@ spring:
     name: engagement-service
 
   datasource:
-    url: jdbc:postgresql://dpg-d6u17rq4d50c73cjtorg-a.singapore-postgres.render.com:5432/engagementdb
-    username: engagementdb_user
-    password: UBCaJzfQi7mQjn4S3T5JIYwcfs6Mjpbm
-#    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${DB_URL:jdbc:postgresql://dpg-d6u17rq4d50c73cjtorg-a.singapore-postgres.render.com:5432/engagementdb}
+    username: ${DB_USERNAME:engagementdb_user}
+    password: ${DB_PASSWORD:UBCaJzfQi7mQjn4S3T5JIYwcfs6Mjpbm}
+    #    driver-class-name: com.mysql.cj.jdbc.Driver
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -49,7 +49,7 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_SERVER_URL:${EUREKA_URL:https://microservice-i7nc.onrender.com/eureka/}}
+      defaultZone: ${EUREKA_SERVER_URL:https://microservice-i7nc.onrender.com/eureka/}
     fetch-registry: true
     register-with-eureka: true
     healthcheck:
@@ -72,7 +72,7 @@ eureka:
 
 services:
   product-service:
-    url: https://productservice-1nk8.onrender.com
+    url: ${PRODUCT_SERVICE_URL:https://productservice-1nk8.onrender.com}
 
 springdoc:
   api-docs:
