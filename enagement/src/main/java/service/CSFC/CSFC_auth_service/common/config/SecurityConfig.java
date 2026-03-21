@@ -17,7 +17,7 @@ import service.CSFC.CSFC_auth_service.common.config.securitymodel.HeaderAuthenti
 import java.util.List;
 
 @Configuration
-@EnableMethodSecurity
+//@EnableMethodSecurity
 public class SecurityConfig {
     private final HeaderAuthenticationFilter headerAuthenticationFilter;
 
@@ -42,7 +42,7 @@ public class SecurityConfig {
                                 "/swagger-ui.html"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
 
                 .addFilterBefore(
@@ -56,16 +56,21 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Cho phép Frontend ở cổng 5173 truy cập
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
-        // Cho phép các HTTP method này
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        // Cho phép các header cần thiết
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "x-no-retry"));
+
+        // Cho phép tất cả origin
+        configuration.setAllowedOriginPatterns(List.of("*"));
+        // (KHÔNG dùng setAllowedOrigins("*") khi allowCredentials = true)
+
+        // Cho phép tất cả HTTP methods
+        configuration.setAllowedMethods(List.of("*"));
+
+        // Cho phép tất cả headers
+        configuration.setAllowedHeaders(List.of("*"));
+
+        // Cho phép gửi cookie / Authorization header
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // Áp dụng cấu hình CORS này cho toàn bộ API (/**)
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
