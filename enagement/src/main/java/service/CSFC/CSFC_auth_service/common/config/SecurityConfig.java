@@ -57,6 +57,8 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
+        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+
         // Cho phép tất cả origin
         configuration.setAllowedOriginPatterns(List.of("*"));
         // (KHÔNG dùng setAllowedOrigins("*") khi allowCredentials = true)
@@ -69,6 +71,10 @@ public class SecurityConfig {
 
         // Cho phép gửi cookie / Authorization header
         configuration.setAllowCredentials(true);
+
+//        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
+//        configuration.setAllowedHeaders(List.of("*"));
+//        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
