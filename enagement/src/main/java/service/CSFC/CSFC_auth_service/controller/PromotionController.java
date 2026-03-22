@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import service.CSFC.CSFC_auth_service.model.constants.PromotionStatus;
 import service.CSFC.CSFC_auth_service.model.dto.request.CreatePromotionRequest;
@@ -95,14 +96,20 @@ public class PromotionController {
         @ApiResponse(responseCode = "404", description = "Không tìm thấy promotion")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<Promotion> getPromotionById(
-            @Parameter(description = "ID của promotion", example = "1")
-            @PathVariable Long id) {
-//        if (isCustomer && promotion.getStatus() != ACTIVE) {
-//            throw new AccessDeniedException("Không được xem promotion chưa public");
-//        }
-//
+    public ResponseEntity<Promotion> getPromotionById(@PathVariable Long id) {
+
         Promotion promotion = promotionService.getPromotionById(id);
+
+        boolean isCustomer = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getAuthorities()
+                .stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
+
+        if (isCustomer && promotion.getStatus() != PromotionStatus.ACTIVE) {
+            throw new AccessDeniedException("Không được xem promotion chưa public");
+        }
+
         return ResponseEntity.ok(promotion);
     }
 

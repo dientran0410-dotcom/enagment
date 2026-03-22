@@ -9,6 +9,8 @@ import service.CSFC.CSFC_auth_service.model.entity.CustomerFranchise;
 import service.CSFC.CSFC_auth_service.repository.CustomerFranchiseRepository;
 import service.CSFC.CSFC_auth_service.service.PointsBalanceService;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class PointsBalanceServiceImpl implements PointsBalanceService {
@@ -18,7 +20,7 @@ public class PointsBalanceServiceImpl implements PointsBalanceService {
     private final PointsBalanceMapper pointsBalanceMapper;
 
     @Override
-    public PointsBalanceResponse getPointsBalance(Long customerId, Long franchiseId) {
+    public PointsBalanceResponse getPointsBalance(UUID customerId, Long franchiseId) {
         if (customerId == null || franchiseId == null) {
             return null;
         }

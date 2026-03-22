@@ -234,7 +234,7 @@ public class CouponServiceImpl implements CouponService {
 
         Coupon coupon = couponCode.getCoupon();
 
-        // 🔥 vẫn check hạn bằng Promotion
+        // vẫn check hạn bằng Promotion
         validateCoupon(coupon, new ApplyCouponRequest(code, orderAmount));
 
         double discount = calculateDiscount(coupon, orderAmount);
@@ -323,7 +323,7 @@ public class CouponServiceImpl implements CouponService {
 
 
         String redeemUrl =
-                "https://localhost:8081/api/coupons/redeem?code=" + code;
+                "https://localhost:8085/api/coupons/redeem?code=" + code;
 
 
         couponCode.setStatus(CodeStatus.PENDING);

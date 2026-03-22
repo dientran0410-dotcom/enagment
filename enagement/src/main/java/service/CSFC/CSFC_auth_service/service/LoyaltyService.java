@@ -11,12 +11,13 @@ import service.CSFC.CSFC_auth_service.model.dto.request.RedeemRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.*;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface LoyaltyService {
 
-    CustomerEngagementResponse getCustomerEngagement(Long customerId, Long franchiseId);
+    CustomerEngagementResponse getCustomerEngagement(UUID customerId, Long franchiseId);
 
-    List<TransactionHistoryResponse> getTransactionHistory(Long customerId, Long franchiseId);
+    List<TransactionHistoryResponse> getTransactionHistory(UUID customerId, Long franchiseId);
 
     Page<CustomerEngagementResponse> getAllCustomers(
             Long franchiseId,
@@ -41,5 +42,5 @@ public interface LoyaltyService {
     void deleteRule(Long franchiseId, EventType eventType);
 
     // ===== Redeem =====
-    RedeemResponse redeem(RedeemRequest redeemRequest);
+    RedeemResponse redeem(RedeemRequest redeemRequest,UUID customerId);
 }

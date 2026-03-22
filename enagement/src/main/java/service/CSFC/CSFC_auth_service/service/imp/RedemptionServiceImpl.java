@@ -4,6 +4,7 @@ package service.CSFC.CSFC_auth_service.service.imp;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import service.CSFC.CSFC_auth_service.common.client.AuthServiceClient;
 import service.CSFC.CSFC_auth_service.common.exception.InsufficientPointsException;
 import service.CSFC.CSFC_auth_service.common.exception.ResourceNotFoundException;
 import service.CSFC.CSFC_auth_service.mapper.RedemptionMapper;
@@ -33,59 +34,50 @@ public class RedemptionServiceImpl implements RedemptionService {
     private final RedemptionRepository redemptionRepository;
     private final PointTransactionRepository pointTransactionRepository;
     private final LoyaltyRuleRepository loyaltyRuleRepository;
+    private final AuthServiceClient authServiceClient;
 
 
     @Override
     @Transactional
-    public RedemptionResponse confirmRedeem(Long rewardId) {
-        Long userId = getCurrentUserId();
+    public RedemptionResponse confirmRedeem(Long rewardId, UUID userId) {
+        if (userId == null) {
+            throw new IllegalArgumentException("CustomerIdInput are required");
+        }
 
-        //check reward
+        //  Kiểm tra reward
         Reward reward = rewardRepository.findById(rewardId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Reward not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Reward not found"));
 
         if (!reward.getIsActive()) {
             throw new ResourceNotFoundException("Reward is inactive");
         }
 
-        //check user point
+        //  Kiểm tra điểm của user
         CustomerFranchise customerFranchise =
-                customerFranchiseRepository.findById(userId)
-                        .orElseThrow(() ->
-                                new ResourceNotFoundException("User loyalty not found"));
+                customerFranchiseRepository.findByCustomerId(userId)
+                        .orElseThrow(() -> new ResourceNotFoundException("User loyalty not found"));
 
         if (customerFranchise.getCurrentPoints() < reward.getRequiredPoints()) {
             throw new InsufficientPointsException("Not enough points");
         }
 
-        //check redeem rule
+        //  Kiểm tra rule cho redeem
         LoyaltyRule rule = loyaltyRuleRepository.findByEventTypeAndIsActiveTrue(EventType.REDEMPTION)
                 .orElseThrow(() -> new RuntimeException("Redeem rule not found"));
 
         LocalDateTime now = LocalDateTime.now();
+        LocalDateTime expiration = rule.getExpiryDays() != null ? now.plusDays(rule.getExpiryDays()) : null;
 
-        LocalDateTime expiration = null;
-
-        if(rule.getExpiryDays() != null) {
-            expiration = now.plusDays(rule.getExpiryDays());
-        }
-
-        //deduct points
+        //  Trừ điểm của user
         customerFranchise.setCurrentPoints(
                 customerFranchise.getCurrentPoints() - reward.getRequiredPoints()
         );
-
         customerFranchiseRepository.save(customerFranchise);
 
-        //create redemption code
-        String redemptionCode =
-                "RDM-" + UUID.randomUUID()
-                        .toString()
-                        .substring(0, 8)
-                        .toUpperCase();
+        //  Tạo redemption code
+        String redemptionCode = "RDM-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
-        //save redemption
+        //  Tạo Redemption mà không liên kết Customer trực tiếp
         Redemption redemption = Redemption.builder()
                 .reward(reward)
                 .pointsUsed(reward.getRequiredPoints())
@@ -96,7 +88,7 @@ public class RedemptionServiceImpl implements RedemptionService {
 
         redemptionRepository.save(redemption);
 
-        //create point transaction
+        //  Tạo PointTransaction liên kết CustomerFranchise
         PointTransaction pointTransaction = PointTransaction.builder()
                 .customerFranchise(customerFranchise)
                 .amount(-reward.getRequiredPoints())
@@ -106,17 +98,14 @@ public class RedemptionServiceImpl implements RedemptionService {
 
         pointTransactionRepository.save(pointTransaction);
 
+        //  Gán PointTransaction vào Redemption (nếu có mapping)
         redemption.setPointTransaction(pointTransaction);
         redemptionRepository.save(redemption);
 
-        //generate QR code
-        String qrContent =
-                "REDEEM:" + redemptionCode;
+        //  Generate QR code
+        String qrBase64 = qrCodeService.generateQrBase64("REDEEM:" + redemptionCode);
 
-        String qrBase64 =
-                qrCodeService.generateQrBase64(qrContent);
-
-        //return response
+        // Trả về response
         return new RedemptionResponse(
                 redemption.getId(),
                 redemptionCode,
@@ -129,10 +118,6 @@ public class RedemptionServiceImpl implements RedemptionService {
                 now,
                 qrBase64
         );
-    }
-    // giả lập lấy user login
-    private Long getCurrentUserId() {
-        return 1L;
     }
 
     @Override
@@ -148,7 +133,6 @@ public class RedemptionServiceImpl implements RedemptionService {
     @Override
     public List<RedemptionResponse> getAll() {
         List<Redemption> redemptionResponses = redemptionRepository.findAll();
-
         return redemptionResponses.stream()
                 .map(RedemptionMapper::toResponse)
                 .toList();
@@ -156,19 +140,19 @@ public class RedemptionServiceImpl implements RedemptionService {
 
     @Override
     public RedemptionResponse findById(Long id) {
-        Redemption redemption = redemptionRepository.findById(id).
-                orElseThrow(() -> new RuntimeException("Redemption not found with id: " + id));
+        Redemption redemption = redemptionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Redemption not found with id: " + id));
 
         return mapToResponse(redemption);
-
     }
+
     private RedemptionResponse mapToResponse(Redemption r) {
         return RedemptionResponse.builder()
                 .id(r.getId())
                 .redemptionCode(r.getRedemptionCode())
-                .userId(r.getPointTransaction().getId())
+                .userId(r.getPointTransaction().getCustomerFranchise().getCustomerId())
                 .rewardId(r.getReward().getId())
-                .promotionId(r.getPromotion().getId())
+                .promotionId(r.getPromotion() != null ? r.getPromotion().getId() : null)
                 .status(r.getStatus())
                 .pointsUsed(r.getPointsUsed())
                 .expirationDate(r.getExpiryDate())

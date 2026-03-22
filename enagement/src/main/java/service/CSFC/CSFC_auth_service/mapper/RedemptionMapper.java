@@ -3,6 +3,8 @@ package service.CSFC.CSFC_auth_service.mapper;
 import service.CSFC.CSFC_auth_service.model.dto.response.RedemptionResponse;
 import service.CSFC.CSFC_auth_service.model.entity.Redemption;
 
+import java.util.UUID;
+
 public class RedemptionMapper {
     public static RedemptionResponse toResponse(Redemption redemption) {
 
@@ -14,7 +16,7 @@ public class RedemptionMapper {
                 ? redemption.getPromotion().getId()
                 : null;
 
-        Long userId = redemption.getPointTransaction() != null
+        UUID userId = redemption.getPointTransaction() != null
                 ? redemption.getPointTransaction().getCustomerFranchise().getCustomerId()
                 : null;
 

@@ -12,12 +12,13 @@ import org.springframework.stereotype.Repository;
 import service.CSFC.CSFC_auth_service.model.entity.CustomerFranchise;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface CustomerFranchiseRepository extends JpaRepository<CustomerFranchise, Long> {
 
     // Tìm khách hàng theo User ID và Franchise ID (để check xem họ đã từng mua hàng ở đây chưa)
-    Optional<CustomerFranchise> findByCustomerIdAndFranchiseId(Long customerId, Long franchiseId);
+    Optional<CustomerFranchise> findByCustomerIdAndFranchiseId(UUID customerId, Long franchiseId);
 
     // Kiểm tra nhanh xem khách hàng tồn tại chưa (trả về true/false)
     boolean existsByCustomerIdAndFranchiseId(Long customerId, Long franchiseId);
@@ -34,5 +35,7 @@ public interface CustomerFranchiseRepository extends JpaRepository<CustomerFranc
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT cf FROM CustomerFranchise cf WHERE cf.customerId =:id")
     Optional<CustomerFranchise> findByCustomerIdForUpdate(@Param("id") Long id);
+
+    Optional<CustomerFranchise> findByCustomerId(UUID customerId);
 
 }

@@ -10,6 +10,7 @@ import service.CSFC.CSFC_auth_service.model.constants.CustomerStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "customer_franchise")
@@ -21,7 +22,7 @@ import java.util.List;
 public class CustomerFranchise extends BaseEntity {
 
     @Column(name = "customer_id", nullable = false)
-    private Long customerId; // ID lấy từ User Service
+    private UUID customerId; // ID lấy từ User Service
 
     @Column(name = "franchise_id", nullable = false)
     private Long franchiseId; // ID cửa hàng/nhượng quyền

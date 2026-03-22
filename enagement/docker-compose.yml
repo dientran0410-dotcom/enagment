@@ -1,0 +1,17 @@
+services:
+  report-db:
+    image: mysql:8.0
+    container_name: engagement-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: engagement_service_db
+      MYSQL_USER: engagement_user
+      MYSQL_PASSWORD: engagement_pass
+    ports:
+      - "3308:3306"
+    volumes:
+      - engagement_db_data:/var/lib/mysql # This name must match...
+
+volumes:
+  engagement_db_data: # ...this name exactly!

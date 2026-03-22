@@ -5,7 +5,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import service.CSFC.CSFC_auth_service.common.config.securitymodel.UserPrincipal;
 import service.CSFC.CSFC_auth_service.model.constants.RedemptionStatus;
 import service.CSFC.CSFC_auth_service.model.dto.response.ApiResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.QRCheckResponse;
@@ -16,6 +19,7 @@ import service.CSFC.CSFC_auth_service.service.RedemptionService;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/engagement-service/redemption")
@@ -28,10 +32,12 @@ public class RedemptionController {
     @PostMapping("/confirm/{rewardId}")
     public ResponseEntity<ApiResponse<RedemptionResponse>> confirmRedeem(
             @PathVariable Long rewardId
-    ) throws Exception {
+    ) {
+
+        UUID customerId = getCurrentUserId();
 
         RedemptionResponse response =
-                redemptionService.confirmRedeem(rewardId);
+                redemptionService.confirmRedeem(rewardId, customerId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(response, "Redeem confirmed successfully")
@@ -110,13 +116,38 @@ public class RedemptionController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<RedemptionResponse>> getRedemptionById(@PathVariable Long id) {
-//        if (isCustomer && !redemption.getCustomerId().equals(currentUserId)) {
-//            throw new AccessDeniedException("Forbidden");
-//        }
-        return ResponseEntity.ok(
-                ApiResponse.success(redemptionService.findById(id),"Lây redemption thành công")
-        );
 
+        RedemptionResponse response = redemptionService.findById(id);
+
+        boolean isCustomer = SecurityContextHolder.getContext()
+                .getAuthentication()
+                .getAuthorities()
+                .stream()
+                .anyMatch(a -> a.getAuthority().equals("CUSTOMER"));
+
+        if (isCustomer) {
+            UUID currentUserId = getCurrentUserId();
+
+            if (!response.getUserId().equals(currentUserId)) {
+                throw new AccessDeniedException("Forbidden");
+            }
+        }
+
+        return ResponseEntity.ok(
+                ApiResponse.success(response, "Lấy redemption thành công")
+        );
+    }
+
+    private UUID getCurrentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || auth.getPrincipal() == null) {
+            throw new AccessDeniedException("User not authenticated");
+        }
+
+        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+
+        return UUID.fromString(principal.getUserId());
     }
 }
 

@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import service.CSFC.CSFC_auth_service.model.constants.RedemptionStatus;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -14,8 +15,8 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 public class RedemptionResponse {
     private Long id;
-    private  String redemptionCode;
-    private Long userId;
+    private String redemptionCode;
+    private UUID userId;
     private Long rewardId;
     private Long promotionId;
     private Integer pointsUsed;

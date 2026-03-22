@@ -17,7 +17,7 @@ import service.CSFC.CSFC_auth_service.common.config.securitymodel.HeaderAuthenti
 import java.util.List;
 
 @Configuration
-//@EnableMethodSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
     private final HeaderAuthenticationFilter headerAuthenticationFilter;
 
@@ -42,7 +42,7 @@ public class SecurityConfig {
                                 "/swagger-ui.html"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .anyRequest().permitAll()
+                        .anyRequest().authenticated()
                 )
 
                 .addFilterBefore(

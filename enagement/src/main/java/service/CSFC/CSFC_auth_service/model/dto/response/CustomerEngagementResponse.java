@@ -7,12 +7,13 @@ import service.CSFC.CSFC_auth_service.model.constants.CustomerStatus;
 import service.CSFC.CSFC_auth_service.model.constants.TierName;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 public class CustomerEngagementResponse {
     private Long id;
-    private Long customerId;
+    private UUID customerId;
     private Long franchiseId;
     private Integer currentPoints;
     private Integer totalEarnedPoints;

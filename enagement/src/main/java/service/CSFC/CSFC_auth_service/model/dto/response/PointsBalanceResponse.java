@@ -2,13 +2,15 @@ package service.CSFC.CSFC_auth_service.model.dto.response;
 
 import lombok.*;
 
+import java.util.UUID;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
 public class PointsBalanceResponse {
-    private Long customerId;
+    private UUID customerId;
     private Long franchiseId;
     private Integer currentPoints;
     private Integer totalEarnedPoints;

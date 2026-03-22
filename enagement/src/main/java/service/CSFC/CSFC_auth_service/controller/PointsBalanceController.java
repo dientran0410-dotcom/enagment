@@ -1,20 +1,22 @@
 package service.CSFC.CSFC_auth_service.controller;
 
 
-import com.thoughtworks.xstream.core.SecurityUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import service.CSFC.CSFC_auth_service.model.dto.request.PointsBalanceRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.PointsBalanceResponse;
 import service.CSFC.CSFC_auth_service.service.PointsBalanceService;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/engagement-service/points")
@@ -25,23 +27,39 @@ public class PointsBalanceController {
 
     private final PointsBalanceService pointsBalanceService;
 
+    private UUID getCurrentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        if (auth == null || auth.getName() == null) {
+            throw new AccessDeniedException("User not authenticated");
+        }
+
+        return UUID.fromString(auth.getName());
+    }
+
+    private boolean isCustomer() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
+    }
+
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
     @GetMapping("/balance")
     @Operation(summary = "Get Points Balance (Query Params)",
                description = "Retrieve current points balance and tier information for a customer at a specific franchise using query parameters")
     public ResponseEntity<PointsBalanceResponse> getPointsBalance(
-            @Parameter(description = "Customer ID", required = true)
-            @RequestParam Long customerId,
-            @Parameter(description = "Franchise ID", required = true)
+            @RequestParam UUID customerId,
             @RequestParam Long franchiseId) {
-//
-//        Long currentUserId = SecurityUtils.getCurrentUserId();
-//
-//        if (SecurityUtils.hasAuthority("CUSTOMER") && !currentUserId.equals(customerId)) {
-//            throw new AccessDeniedException("Forbidden");
-//        }
 
-        PointsBalanceResponse pointsBalance = pointsBalanceService.getPointsBalance(customerId, franchiseId);
+        if (isCustomer()) {
+            UUID currentUserId = getCurrentUserId();
+            if (!currentUserId.equals(customerId)) {
+                throw new AccessDeniedException("Forbidden");
+            }
+        }
+
+        PointsBalanceResponse pointsBalance =
+                pointsBalanceService.getPointsBalance(customerId, franchiseId);
 
         if (pointsBalance == null) {
             return ResponseEntity.notFound().build();
@@ -57,16 +75,18 @@ public class PointsBalanceController {
     public ResponseEntity<PointsBalanceResponse> getPointsBalanceByRequest(
             @Valid @RequestBody PointsBalanceRequest request) {
 
-//        Long currentUserId = SecurityUtils.getCurrentUserId();
-//
-//        if (SecurityUtils.hasAuthority("CUSTOMER") &&
-//                !currentUserId.equals(request.getCustomerId())) {
-//            throw new AccessDeniedException("Forbidden");
-//        }
-        PointsBalanceResponse pointsBalance = pointsBalanceService.getPointsBalance(
-                request.getCustomerId(),
-                request.getFranchiseId()
-        );
+        if (isCustomer()) {
+            UUID currentUserId = getCurrentUserId();
+            if (!currentUserId.equals(request.getCustomerId())) {
+                throw new AccessDeniedException("Forbidden");
+            }
+        }
+
+        PointsBalanceResponse pointsBalance =
+                pointsBalanceService.getPointsBalance(
+                        request.getCustomerId(),
+                        request.getFranchiseId()
+                );
 
         if (pointsBalance == null) {
             return ResponseEntity.notFound().build();

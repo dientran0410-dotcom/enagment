@@ -5,10 +5,13 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import service.CSFC.CSFC_auth_service.common.client.AuthServiceClient;
 import service.CSFC.CSFC_auth_service.common.exception.ResourceNotFoundException;
 import service.CSFC.CSFC_auth_service.model.constants.ActionType;
+import service.CSFC.CSFC_auth_service.model.constants.CustomerStatus;
 import service.CSFC.CSFC_auth_service.model.constants.EventType;
 import service.CSFC.CSFC_auth_service.model.constants.TierName;
 import service.CSFC.CSFC_auth_service.model.dto.request.CreateLoyaltyTierRequest;
@@ -21,6 +24,7 @@ import service.CSFC.CSFC_auth_service.service.LoyaltyService;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static service.CSFC.CSFC_auth_service.model.constants.TierName.*;
@@ -33,6 +37,7 @@ public class LoyaltyServiceImpl implements LoyaltyService {
     private final CustomerFranchiseRepository customerFranchiseRepository;
     private final PointTransactionRepository pointTransactionRepository;
     private final LoyaltyRuleRepository ruleRepository;
+    private final AuthServiceClient authServiceClient;
 
     private final RewardRepository rewardRepository;
 
@@ -40,7 +45,7 @@ public class LoyaltyServiceImpl implements LoyaltyService {
     // ================= CUSTOMER =================
 
     @Override
-    public CustomerEngagementResponse getCustomerEngagement(Long customerId, Long franchiseId) {
+    public CustomerEngagementResponse getCustomerEngagement(UUID customerId, Long franchiseId) {
         CustomerFranchise cf = customerFranchiseRepository
                 .findByCustomerIdAndFranchiseId(customerId, franchiseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found in this franchise"));
@@ -60,7 +65,7 @@ public class LoyaltyServiceImpl implements LoyaltyService {
     }
 
     @Override
-    public List<TransactionHistoryResponse> getTransactionHistory(Long customerId, Long franchiseId) {
+    public List<TransactionHistoryResponse> getTransactionHistory(UUID customerId, Long franchiseId) {
         CustomerFranchise cf = customerFranchiseRepository
                 .findByCustomerIdAndFranchiseId(customerId, franchiseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found in this franchise"));
@@ -281,11 +286,16 @@ public class LoyaltyServiceImpl implements LoyaltyService {
 
     @Override
     @Transactional
-    public RedeemResponse redeem(RedeemRequest request) {
+    public RedeemResponse redeem(RedeemRequest request, UUID customerId) {
 
         CustomerFranchise customerFranchise = customerFranchiseRepository
                 .findByCustomerIdForUpdate(request.getCustomerFranchiseId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
+
+
+        if (!customerFranchise.getCustomerId().equals(customerId)) {
+            throw new AccessDeniedException("Bạn không thể redeem cho người khác");
+        }
 
         Reward reward = rewardRepository.findById(request.getRewardId())
                 .orElseThrow(() -> new RuntimeException("Reward not found"));
@@ -322,5 +332,27 @@ public class LoyaltyServiceImpl implements LoyaltyService {
                 .pointUsed(reward.getRequiredPoints())
                 .currentPoints(remainingPoints)
                 .build();
+    }
+
+    public CustomerFranchise createCustomerFranchise(UUID customerIdInput, Long franchiseId, String jwtToken) {
+        // Gọi API lấy thông tin customer
+        CustomerProfileResponse profile = authServiceClient.getCustomerProfile(customerIdInput, "Bearer " + jwtToken);
+
+        // Lấy UUID trực tiếp
+        UUID customerId = UUID.fromString(profile.getId());
+//        UUID franchiseId = UUID.fromString(franchiseIdInput);
+
+        // Map vào entity
+        CustomerFranchise cf = new CustomerFranchise();
+        cf.setCustomerId(customerId);
+        cf.setFranchiseId(franchiseId);
+        cf.setStatus(CustomerStatus.ACTIVE);
+
+        return customerFranchiseRepository.save(cf);
+    }
+
+    private UUID fetchCustomerIdFromUserService(UUID customerIdInput, String jwtToken) {
+        CustomerProfileResponse profile = authServiceClient.getCustomerProfile(customerIdInput, "Bearer " + jwtToken);
+        return UUID.fromString(profile.getId());
     }
 }
