@@ -1,24 +1,37 @@
 package service.CSFC.CSFC_auth_service.mapper;
 
+import org.springframework.stereotype.Component;
 import service.CSFC.CSFC_auth_service.model.dto.response.RedemptionResponse;
 import service.CSFC.CSFC_auth_service.model.entity.Redemption;
 
 import java.util.UUID;
 
+@Component
 public class RedemptionMapper {
-    public static RedemptionResponse toResponse(Redemption redemption) {
+    public  RedemptionResponse toResponse(Redemption redemption) {
 
-        Long rewardId = redemption.getReward() != null
-                ? redemption.getReward().getId()
-                : null;
+        if (redemption == null) {
+            return null;
+        }
 
-        Long promotionId = redemption.getPromotion() != null
-                ? redemption.getPromotion().getId()
-                : null;
+        Long rewardId = null;
+        if (redemption.getReward() != null) {
+            rewardId = redemption.getReward().getId();
+        }
 
-        UUID userId = redemption.getPointTransaction() != null
-                ? redemption.getPointTransaction().getCustomerFranchise().getCustomerId()
-                : null;
+        Long promotionId = null;
+        if (redemption.getPromotion() != null) {
+            promotionId = redemption.getPromotion().getId();
+        }
+
+        UUID userId = null;
+        if (redemption.getPointTransaction() != null &&
+                redemption.getPointTransaction().getCustomerFranchise() != null) {
+
+            userId = redemption.getPointTransaction()
+                    .getCustomerFranchise()
+                    .getCustomerId();
+        }
 
         return new RedemptionResponse(
                 redemption.getId(),

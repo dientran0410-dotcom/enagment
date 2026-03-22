@@ -138,6 +138,20 @@ public class RedemptionController {
         );
     }
 
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @GetMapping("/my-history")
+    public ResponseEntity<ApiResponse<List<RedemptionResponse>>> getMyHistory() {
+
+        UUID customerId = getCurrentUserId();
+
+        List<RedemptionResponse> data =
+                redemptionService.getByUserId(customerId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(data, "Lấy lịch sử đổi điểm thành công")
+        );
+    }
+
     private UUID getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 

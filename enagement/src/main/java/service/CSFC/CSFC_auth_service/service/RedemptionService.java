@@ -15,4 +15,5 @@ public interface RedemptionService {
     void save(Redemption redemption);
     List<RedemptionResponse> getAll();
     RedemptionResponse findById(Long id);
+    List<RedemptionResponse> getByUserId(UUID userId);
 }

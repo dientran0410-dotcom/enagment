@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static service.CSFC.CSFC_auth_service.model.constants.RedemptionStatus.PENDING;
 
@@ -35,6 +36,7 @@ public class RedemptionServiceImpl implements RedemptionService {
     private final PointTransactionRepository pointTransactionRepository;
     private final LoyaltyRuleRepository loyaltyRuleRepository;
     private final AuthServiceClient authServiceClient;
+    private final RedemptionMapper redemptionMapper;
 
 
     @Override
@@ -132,9 +134,11 @@ public class RedemptionServiceImpl implements RedemptionService {
 
     @Override
     public List<RedemptionResponse> getAll() {
-        List<Redemption> redemptionResponses = redemptionRepository.findAll();
-        return redemptionResponses.stream()
-                .map(RedemptionMapper::toResponse)
+
+        List<Redemption> redemptions = redemptionRepository.findAll();
+
+        return redemptions.stream()
+                .map(redemptionMapper::toResponse)
                 .toList();
     }
 
@@ -144,6 +148,17 @@ public class RedemptionServiceImpl implements RedemptionService {
                 .orElseThrow(() -> new RuntimeException("Redemption not found with id: " + id));
 
         return mapToResponse(redemption);
+    }
+
+    @Override
+    public List<RedemptionResponse> getByUserId(UUID userId) {
+
+        List<Redemption> redemptions =
+                redemptionRepository.findByPointTransaction_CustomerFranchise_CustomerId(userId);
+
+        return redemptions.stream()
+                .map(redemptionMapper::toResponse)
+                .toList();
     }
 
     private RedemptionResponse mapToResponse(Redemption r) {
