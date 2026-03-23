@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
+import service.CSFC.CSFC_auth_service.common.config.securitymodel.UserPrincipal;
 import service.CSFC.CSFC_auth_service.model.dto.request.RedeemRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.ApiResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.CustomerEngagementResponse;
@@ -30,11 +31,21 @@ public class CustomerLoyaltyController {
     private UUID getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-        if (auth == null || auth.getName() == null) {
+        if (auth == null) {
             throw new AccessDeniedException("User not authenticated");
         }
 
-        String userId = auth.getName();
+        // Extract userId from UserPrincipal object (set by HeaderAuthenticationFilter)
+        Object principal = auth.getPrincipal();
+        if (!(principal instanceof UserPrincipal)) {
+            throw new AccessDeniedException("Invalid principal type");
+        }
+
+        String userId = ((UserPrincipal) principal).getUserId();
+        if (userId == null || userId.isBlank()) {
+            throw new AccessDeniedException("User ID is missing");
+        }
+
         try {
             return UUID.fromString(userId);
         } catch (IllegalArgumentException e) {
@@ -92,7 +103,7 @@ public class CustomerLoyaltyController {
     }
 
     // ================= CUSTOMER REGISTRATION =================
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("isAuthenticated()")
     @PostMapping("/register/{franchiseId}")
     public ResponseEntity<ApiResponse<CustomerEngagementResponse>> registerCustomer(
             @PathVariable UUID franchiseId) {

@@ -24,6 +24,7 @@ import service.CSFC.CSFC_auth_service.service.LoyaltyService;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -114,7 +115,7 @@ public class LoyaltyServiceImpl implements LoyaltyService {
     @Transactional
     public CustomerEngagementResponse registerCustomer(UUID customerId, UUID franchiseId, String jwtToken) {
         // Check if customer already registered for this franchise
-        java.util.Optional<CustomerFranchise> existing = customerFranchiseRepository
+       Optional<CustomerFranchise> existing = customerFranchiseRepository
                 .findByCustomerIdAndFranchiseId(customerId, franchiseId);
 
         if (existing.isPresent()) {
@@ -379,9 +380,10 @@ public class LoyaltyServiceImpl implements LoyaltyService {
 
     public CustomerFranchise createCustomerFranchise(UUID customerIdInput, UUID franchiseId, String jwtToken) {
         // Gọi API lấy thông tin customer để xác thực/sync, không parse id từ response
-        CustomerProfileResponse profile = authServiceClient.getCustomerProfile(customerIdInput, "Bearer " + jwtToken);
+        ApiResponse<CustomerProfileResponse> profileResponse =
+                authServiceClient.getCustomerProfile(customerIdInput, "Bearer " + jwtToken);
 
-        if (profile == null) {
+        if (profileResponse == null) {
             throw new IllegalArgumentException("Customer profile is null");
         }
 

@@ -12,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import service.CSFC.CSFC_auth_service.common.config.securitymodel.UserPrincipal;
 import service.CSFC.CSFC_auth_service.model.dto.request.PointsBalanceRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.PointsBalanceResponse;
 import service.CSFC.CSFC_auth_service.service.PointsBalanceService;
@@ -30,17 +31,35 @@ public class PointsBalanceController {
     private UUID getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
-        if (auth == null || auth.getName() == null) {
+        if (auth == null) {
             throw new AccessDeniedException("User not authenticated");
         }
 
-        return UUID.fromString(auth.getName());
+        // Extract userId from UserPrincipal object (set by HeaderAuthenticationFilter)
+        Object principal = auth.getPrincipal();
+        if (!(principal instanceof UserPrincipal)) {
+            throw new AccessDeniedException("Invalid principal type");
+        }
+
+        String userId = ((UserPrincipal) principal).getUserId();
+        if (userId == null || userId.isBlank()) {
+            throw new AccessDeniedException("User ID is missing");
+        }
+
+        try {
+            return UUID.fromString(userId);
+        } catch (IllegalArgumentException e) {
+            throw new AccessDeniedException("Invalid user ID format: " + userId);
+        }
     }
 
     private boolean isCustomer() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getAuthorities() == null) {
+            return false;
+        }
         return auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
+                .anyMatch(a -> a != null && a.getAuthority() != null && a.getAuthority().equals("ROLE_CUSTOMER"));
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
