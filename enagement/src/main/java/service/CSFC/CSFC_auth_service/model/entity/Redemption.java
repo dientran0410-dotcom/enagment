@@ -30,7 +30,7 @@ public class Redemption extends BaseEntity {
 
     // Link với khuyến mãi (nếu đổi voucher/promotion)
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "promotion_id", nullable = false)
+    @JoinColumn(name = "promotion_id", nullable = true)
     private Promotion promotion;
 
     @Column(name = "points_used", nullable = false)

@@ -79,30 +79,30 @@ public class RedemptionServiceImpl implements RedemptionService {
         //  Tạo redemption code
         String redemptionCode = "RDM-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
-        //  Tạo Redemption mà không liên kết Customer trực tiếp
+        //  Tạo PointTransaction liên kết CustomerFranchise
+        PointTransaction pointTransaction = PointTransaction.builder()
+                .customerFranchise(customerFranchise)
+                .amount(-reward.getRequiredPoints())
+                .actionType(ActionType.REDEEM)
+                .build();
+
+        pointTransactionRepository.save(pointTransaction);
+
+        //  Tạo Redemption và gán PointTransaction
         Redemption redemption = Redemption.builder()
                 .reward(reward)
                 .pointsUsed(reward.getRequiredPoints())
                 .status(PENDING)
                 .redemptionCode(redemptionCode)
                 .expiryDate(expiration)
+                .pointTransaction(pointTransaction)
                 .build();
 
         redemptionRepository.save(redemption);
 
-        //  Tạo PointTransaction liên kết CustomerFranchise
-        PointTransaction pointTransaction = PointTransaction.builder()
-                .customerFranchise(customerFranchise)
-                .amount(-reward.getRequiredPoints())
-                .actionType(ActionType.REDEEM)
-                .referenceId("REDEEM_" + redemption.getId())
-                .build();
-
-        pointTransactionRepository.save(pointTransaction);
-
-        //  Gán PointTransaction vào Redemption (nếu có mapping)
-        redemption.setPointTransaction(pointTransaction);
-        redemptionRepository.save(redemption);
+        //  Cập nhật referenceId của PointTransaction (sử dụng redemption id)
+        pointTransaction.setReferenceId("REDEEM_" + redemption.getId());
+        pointTransactionRepository.saveAndFlush(pointTransaction);
 
         //  Generate QR code
         String qrBase64 = qrCodeService.generateQrBase64("REDEEM:" + redemptionCode);
