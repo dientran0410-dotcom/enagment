@@ -7,6 +7,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.RedeemRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.ApiResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.CustomerEngagementResponse;
@@ -23,6 +24,7 @@ import java.util.UUID;
 public class CustomerLoyaltyController {
 
     private final LoyaltyService loyaltyService;
+    private final HttpServletRequest httpServletRequest;
 
     // ================= HELPER =================
     private UUID getCurrentUserId() {
@@ -113,11 +115,17 @@ public class CustomerLoyaltyController {
 
     // ================= HELPER METHODS =================
     private String getJwtToken() {
+        String authHeader = httpServletRequest.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getCredentials() instanceof String) {
-            return (String) auth.getCredentials();
+            String credentials = (String) auth.getCredentials();
+            if (credentials != null && !credentials.isBlank() && !"[PROTECTED]".equalsIgnoreCase(credentials)) {
+                return credentials;
+            }
         }
-        // Fallback: extract from request header
-        return SecurityContextHolder.getContext().getAuthentication().toString();
+        throw new AccessDeniedException("Missing or invalid JWT token");
     }
 }

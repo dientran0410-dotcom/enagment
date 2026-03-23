@@ -377,11 +377,24 @@ public class LoyaltyServiceImpl implements LoyaltyService {
     }
 
     public CustomerFranchise createCustomerFranchise(UUID customerIdInput, UUID franchiseId, String jwtToken) {
-        // Gọi API lấy thông tin customer
+        // Gọi API lấy thông tin customer để xác thực/sync, không dùng id trả về để parse UUID
         CustomerProfileResponse profile = authServiceClient.getCustomerProfile(customerIdInput, "Bearer " + jwtToken);
 
-        // Lấy UUID trực tiếp
-        UUID customerId = UUID.fromString(profile.getId());
+        if (profile == null) {
+            throw new IllegalArgumentException("Customer profile is null");
+        }
+        if (profile.getId() != null && !profile.getId().isBlank()) {
+            try {
+                UUID profileId = UUID.fromString(profile.getId());
+                if (!profileId.equals(customerIdInput)) {
+                    throw new AccessDeniedException("Customer profile mismatch");
+                }
+            } catch (IllegalArgumentException ignored) {
+                // profile id không đúng UUID -> bỏ qua, vẫn dùng customerIdInput từ JWT
+            }
+        }
+
+        UUID customerId = customerIdInput;
 
         // Map vào entity
         CustomerFranchise cf = new CustomerFranchise();
@@ -404,6 +417,19 @@ public class LoyaltyServiceImpl implements LoyaltyService {
 
     private UUID fetchCustomerIdFromUserService(UUID customerIdInput, String jwtToken) {
         CustomerProfileResponse profile = authServiceClient.getCustomerProfile(customerIdInput, "Bearer " + jwtToken);
-        return UUID.fromString(profile.getId());
+        if (profile == null) {
+            throw new IllegalArgumentException("Customer profile is null");
+        }
+        if (profile.getId() != null && !profile.getId().isBlank()) {
+            try {
+                UUID profileId = UUID.fromString(profile.getId());
+                if (!profileId.equals(customerIdInput)) {
+                    throw new AccessDeniedException("Customer profile mismatch");
+                }
+            } catch (IllegalArgumentException ignored) {
+                // fallback về customerIdInput để tránh lỗi UUID format từ service khác
+            }
+        }
+        return customerIdInput;
     }
 }
