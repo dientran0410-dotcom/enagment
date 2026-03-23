@@ -30,6 +30,7 @@ import service.CSFC.CSFC_auth_service.service.QrCodeService;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -360,6 +361,16 @@ public class CouponServiceImpl implements CouponService {
 
     private String generateCode() {
         return UUID.randomUUID().toString().substring(0,8).toUpperCase();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CouponResponse> getActiveCouponsForCustomer() {
+        LocalDateTime now = LocalDateTime.now();
+        List<Coupon> coupons = couponRepository.findActiveCouponsForCustomer(now);
+        return coupons.stream()
+                .map(couponMapper::toResponse)
+                .collect(Collectors.toList());
     }
 
 }

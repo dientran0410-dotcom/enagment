@@ -85,4 +85,13 @@ public class CouponController {
         );
     }
 
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @GetMapping("/active")
+    public ResponseEntity<ApiResponse<List<CouponResponse>>> getActiveCouponsForCustomer() {
+        List<CouponResponse> coupons = couponService.getActiveCouponsForCustomer();
+        return ResponseEntity.ok(
+                ApiResponse.success(coupons, "Active coupons retrieved successfully")
+        );
+    }
+
 }

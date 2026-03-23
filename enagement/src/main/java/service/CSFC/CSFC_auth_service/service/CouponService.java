@@ -35,6 +35,8 @@ public interface CouponService {
     CouponResponse createCoupon(CouponRequest request);
     CouponCodeResponse generateQrForCoupon(String code);
 
+
+    List<CouponResponse> getActiveCouponsForCustomer();
 }
 
 
