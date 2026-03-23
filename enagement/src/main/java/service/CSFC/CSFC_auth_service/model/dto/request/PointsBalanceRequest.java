@@ -16,6 +16,6 @@ public class PointsBalanceRequest {
     private UUID customerId;
 
     @NotNull(message = "Franchise ID is required")
-    private Long franchiseId;
+    private UUID franchiseId;
 }
 

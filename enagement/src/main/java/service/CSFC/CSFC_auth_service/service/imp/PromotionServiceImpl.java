@@ -12,6 +12,7 @@ import service.CSFC.CSFC_auth_service.service.PromotionService;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service // Đánh dấu đây là Bean để Spring quản lý
 @RequiredArgsConstructor // Tự động inject Repository qua Constructor
@@ -83,7 +84,7 @@ public class PromotionServiceImpl implements PromotionService {
     }
 
     @Override
-    public List<Promotion> getActivePromotions(Long franchiseId) {
+    public List<Promotion> getActivePromotions(UUID franchiseId) {
         LocalDateTime now = LocalDateTime.now();
 
         if (franchiseId != null) {
@@ -145,7 +146,7 @@ public class PromotionServiceImpl implements PromotionService {
     }
 
     @Override
-    public List<Promotion> getPromotionsByFranchise(Long franchiseId) {
+    public List<Promotion> getPromotionsByFranchise(UUID franchiseId) {
         return promotionRepository.findByFranchiseId(franchiseId);
     }
 

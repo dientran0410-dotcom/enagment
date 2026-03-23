@@ -6,11 +6,12 @@ import lombok.Data;
 import service.CSFC.CSFC_auth_service.model.constants.PromotionStatus;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 public class CreatePromotionRequest {
     @NotNull(message = "Franchise ID is required")
-    private Long franchiseId;
+    private UUID franchiseId;
 
     @NotBlank(message = "Name is required")
     private String name;

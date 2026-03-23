@@ -45,7 +45,7 @@ public class LoyaltyServiceImpl implements LoyaltyService {
     // ================= CUSTOMER =================
 
     @Override
-    public CustomerEngagementResponse getCustomerEngagement(UUID customerId, Long franchiseId) {
+    public CustomerEngagementResponse getCustomerEngagement(UUID customerId, UUID franchiseId) {
         CustomerFranchise cf = customerFranchiseRepository
                 .findByCustomerIdAndFranchiseId(customerId, franchiseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found in this franchise"));
@@ -65,7 +65,7 @@ public class LoyaltyServiceImpl implements LoyaltyService {
     }
 
     @Override
-    public List<TransactionHistoryResponse> getTransactionHistory(UUID customerId, Long franchiseId) {
+    public List<TransactionHistoryResponse> getTransactionHistory(UUID customerId, UUID franchiseId) {
         CustomerFranchise cf = customerFranchiseRepository
                 .findByCustomerIdAndFranchiseId(customerId, franchiseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found in this franchise"));
@@ -79,7 +79,7 @@ public class LoyaltyServiceImpl implements LoyaltyService {
 
     @Override
     public Page<@NonNull CustomerEngagementResponse> getAllCustomers(
-            Long franchiseId,
+            UUID franchiseId,
             Long tierId,
             Pageable pageable) {
 
@@ -107,6 +107,48 @@ public class LoyaltyServiceImpl implements LoyaltyService {
                 .referenceId(pt.getReferenceId())
                 .createdAt(pt.getCreatedAt())
                 .expiryDate(pt.getExpiryDate())
+                .build();
+    }
+
+    // ================= CUSTOMER REGISTRATION =================
+
+    @Override
+    @Transactional
+    public CustomerEngagementResponse registerCustomer(UUID customerId, UUID franchiseId, String jwtToken) {
+        // Check if customer already registered for this franchise
+        java.util.Optional<CustomerFranchise> existing = customerFranchiseRepository
+                .findByCustomerIdAndFranchiseId(customerId, franchiseId);
+
+        if (existing.isPresent()) {
+            // Customer already exists, return existing
+            CustomerFranchise cf = existing.get();
+            return CustomerEngagementResponse.builder()
+                    .id(cf.getId())
+                    .customerId(cf.getCustomerId())
+                    .franchiseId(cf.getFranchiseId())
+                    .currentPoints(cf.getCurrentPoints())
+                    .totalEarnedPoints(cf.getTotalEarnedPoints())
+                    .tierName(cf.getTier() != null ? cf.getTier().getName() : null)
+                    .status(cf.getStatus())
+                    .firstOrderAt(cf.getFirstOrderAt())
+                    .lastOrderAt(cf.getLastOrderAt())
+                    .createdAt(cf.getCreatedAt())
+                    .build();
+        }
+
+        // Create new customer franchise record
+        CustomerFranchise cf = createCustomerFranchise(customerId, franchiseId, jwtToken);
+        return CustomerEngagementResponse.builder()
+                .id(cf.getId())
+                .customerId(cf.getCustomerId())
+                .franchiseId(cf.getFranchiseId())
+                .currentPoints(cf.getCurrentPoints())
+                .totalEarnedPoints(cf.getTotalEarnedPoints())
+                .tierName(cf.getTier() != null ? cf.getTier().getName() : null)
+                .status(cf.getStatus())
+                .firstOrderAt(cf.getFirstOrderAt())
+                .lastOrderAt(cf.getLastOrderAt())
+                .createdAt(cf.getCreatedAt())
                 .build();
     }
 
@@ -150,7 +192,7 @@ public class LoyaltyServiceImpl implements LoyaltyService {
 
     @Override
     @Transactional
-    public LoyaltyTierResponse updateTier(Long franchiseId,
+    public LoyaltyTierResponse updateTier(UUID franchiseId,
                                           TierName name,
                                           CreateLoyaltyTierRequest request) {
 
@@ -165,7 +207,7 @@ public class LoyaltyServiceImpl implements LoyaltyService {
     }
     @Transactional
     @Override
-    public void deleteTier(Long franchiseId, TierName tierName) {
+    public void deleteTier(UUID franchiseId, TierName tierName) {
         LoyaltyTier tier = tierRepository.findByFranchiseIdAndName(franchiseId, tierName)
                 .orElseThrow(() -> new RuntimeException("Tier not found: " + tierName));
         tierRepository.delete(tier);
@@ -185,7 +227,7 @@ public class LoyaltyServiceImpl implements LoyaltyService {
     //================= RuleService ===========
     @Override
     @Transactional
-    public LoyaltyRuleResponse createRule(Long franchiseId, LoyaltyRuleRequest request) {
+    public LoyaltyRuleResponse createRule(UUID franchiseId, LoyaltyRuleRequest request) {
         validateRule(request);
         if (ruleRepository.existsByFranchiseIdAndEventTypeAndIsActive(
                 franchiseId, request.getEventType(), true)) {
@@ -216,7 +258,7 @@ public class LoyaltyServiceImpl implements LoyaltyService {
 
     @Override
     @Transactional
-    public LoyaltyRuleResponse updateRule(Long franchiseId, EventType eventType, LoyaltyRuleRequest request) {
+    public LoyaltyRuleResponse updateRule(UUID franchiseId, EventType eventType, LoyaltyRuleRequest request) {
         validateRule(request);
         LoyaltyRule rule = ruleRepository.findByFranchiseIdAndEventType(franchiseId, eventType)
                 .orElseThrow(() -> new RuntimeException(
@@ -234,7 +276,7 @@ public class LoyaltyServiceImpl implements LoyaltyService {
 
     @Override
     @Transactional
-    public void deleteRule(Long franchiseId, EventType eventType) {
+    public void deleteRule(UUID franchiseId, EventType eventType) {
         LoyaltyRule rule = ruleRepository.findByFranchiseIdAndEventType(franchiseId, eventType)
                 .orElseThrow(() -> new RuntimeException(
                         "Rule not found for franchiseId: " + franchiseId + ", eventType: " + eventType));
@@ -334,7 +376,7 @@ public class LoyaltyServiceImpl implements LoyaltyService {
                 .build();
     }
 
-    public CustomerFranchise createCustomerFranchise(UUID customerIdInput, Long franchiseId, String jwtToken) {
+    public CustomerFranchise createCustomerFranchise(UUID customerIdInput, UUID franchiseId, String jwtToken) {
         // Gọi API lấy thông tin customer
         CustomerProfileResponse profile = authServiceClient.getCustomerProfile(customerIdInput, "Bearer " + jwtToken);
 

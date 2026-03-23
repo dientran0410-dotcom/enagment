@@ -5,12 +5,14 @@ import lombok.Builder;
 import lombok.Data;
 import service.CSFC.CSFC_auth_service.model.constants.TierName;
 
+import java.util.UUID;
+
 @Data
 @Builder
 public class LoyaltyTierResponse {
 
     private Long id;
-    private Long franchiseId;
+    private UUID franchiseId;
     private TierName name;
     private Integer minPoint;
     private String benefits;

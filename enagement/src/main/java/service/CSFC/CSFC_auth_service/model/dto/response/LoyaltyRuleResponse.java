@@ -5,12 +5,13 @@ import lombok.Data;
 import service.CSFC.CSFC_auth_service.model.constants.EventType;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
 public class LoyaltyRuleResponse {
     private Long id;
-    private Long franchiseId;
+    private UUID franchiseId;
     private String name;
     private EventType eventType;
     private Double pointMultiplier;

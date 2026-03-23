@@ -9,16 +9,16 @@ import service.CSFC.CSFC_auth_service.model.entity.LoyaltyTier;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 public interface LoyaltyTierRepository extends JpaRepository<LoyaltyTier, Long> {
 
     // Tìm tier cao nhất mà customer đạt được dựa trên totalEarnedPoints
     @Query("SELECT t FROM LoyaltyTier t WHERE t.franchiseId = :franchiseId AND t.minPoint <= :points ORDER BY t.minPoint DESC LIMIT 1")
-    Optional<LoyaltyTier> findHighestTierByPoints(Long franchiseId, Integer points);
+    Optional<LoyaltyTier> findHighestTierByPoints(UUID franchiseId, Integer points);
 
-    boolean existsByFranchiseIdAndName(Long franchiseId, TierName name);
-    List<LoyaltyTier> findByFranchiseId(Long franchiseId);
-    Optional<LoyaltyTier> findByFranchiseIdAndName(Long franchiseId, TierName name);
-    void deleteById(Long id);
+    boolean existsByFranchiseIdAndName(UUID franchiseId, TierName name);
+    List<LoyaltyTier> findByFranchiseId(UUID franchiseId);
+    Optional<LoyaltyTier> findByFranchiseIdAndName(UUID franchiseId, TierName name);
 }

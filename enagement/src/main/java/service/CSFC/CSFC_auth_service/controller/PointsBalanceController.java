@@ -49,7 +49,7 @@ public class PointsBalanceController {
                description = "Retrieve current points balance and tier information for a customer at a specific franchise using query parameters")
     public ResponseEntity<PointsBalanceResponse> getPointsBalance(
             @RequestParam UUID customerId,
-            @RequestParam Long franchiseId) {
+            @RequestParam UUID franchiseId) {
 
         if (isCustomer()) {
             UUID currentUserId = getCurrentUserId();

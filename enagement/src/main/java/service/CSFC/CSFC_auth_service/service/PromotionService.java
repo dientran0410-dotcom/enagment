@@ -7,12 +7,13 @@ import service.CSFC.CSFC_auth_service.model.dto.request.CreatePromotionRequest;
 import service.CSFC.CSFC_auth_service.model.entity.Promotion;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface PromotionService {
     // Chỉ khai báo hàm, không viết code xử lý
     Promotion createPromotion(CreatePromotionRequest request);
 
-    List<Promotion> getActivePromotions(Long franchiseId);
+    List<Promotion> getActivePromotions(UUID franchiseId);
 
     Promotion getPromotionById(Long id);
 
@@ -25,8 +26,8 @@ public interface PromotionService {
     
     void deletePromotion(Long id);
     
-    List<Promotion> getPromotionsByFranchise(Long franchiseId);
-    
+    List<Promotion> getPromotionsByFranchise(UUID franchiseId);
+
     List<Promotion> getPromotionsByStatus(PromotionStatus status);
     
     Object getPromotionCoupons(Long id);

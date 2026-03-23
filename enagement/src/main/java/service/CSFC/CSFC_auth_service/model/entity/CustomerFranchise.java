@@ -25,7 +25,7 @@ public class CustomerFranchise extends BaseEntity {
     private UUID customerId; // ID lấy từ User Service
 
     @Column(name = "franchise_id", nullable = false)
-    private Long franchiseId; // ID cửa hàng/nhượng quyền
+    private UUID franchiseId; // ID cửa hàng/nhượng quyền
 
     @Column(name = "current_points")
     private Integer currentPoints = 0;

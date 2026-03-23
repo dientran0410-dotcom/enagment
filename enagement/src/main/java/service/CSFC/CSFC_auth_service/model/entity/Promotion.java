@@ -10,6 +10,7 @@ import service.CSFC.CSFC_auth_service.model.constants.PromotionStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "promotion")
@@ -21,7 +22,7 @@ import java.util.List;
 public class Promotion extends BaseEntity {
 
     @Column(name = "franchise_id")
-    private Long franchiseId;
+    private UUID franchiseId;
 
     private String name;
     private String description;

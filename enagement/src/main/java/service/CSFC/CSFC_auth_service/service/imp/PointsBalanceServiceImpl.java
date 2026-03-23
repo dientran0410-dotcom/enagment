@@ -20,7 +20,7 @@ public class PointsBalanceServiceImpl implements PointsBalanceService {
     private final PointsBalanceMapper pointsBalanceMapper;
 
     @Override
-    public PointsBalanceResponse getPointsBalance(UUID customerId, Long franchiseId) {
+    public PointsBalanceResponse getPointsBalance(UUID customerId, UUID franchiseId) {
         if (customerId == null || franchiseId == null) {
             return null;
         }

@@ -20,6 +20,7 @@ import service.CSFC.CSFC_auth_service.model.entity.Promotion;
 import service.CSFC.CSFC_auth_service.service.PromotionService;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/engagement-service/promotions")
@@ -81,7 +82,7 @@ public class PromotionController {
     @GetMapping("/active")
     public ResponseEntity<List<Promotion>> getActivePromotions(
             @Parameter(description = "ID của franchise (optional)", example = "1")
-            @RequestParam(required = false) Long franchiseId) {
+            @RequestParam(required = false) UUID franchiseId) {
         List<Promotion> promotions = promotionService.getActivePromotions(franchiseId);
         return ResponseEntity.ok(promotions);
     }
@@ -179,7 +180,7 @@ public class PromotionController {
     @GetMapping("/franchise/{franchiseId}")
     public ResponseEntity<List<Promotion>> getPromotionsByFranchise(
             @Parameter(description = "ID của franchise", example = "1")
-            @PathVariable Long franchiseId) {
+            @PathVariable UUID franchiseId) {
         List<Promotion> promotions = promotionService.getPromotionsByFranchise(franchiseId);
         return ResponseEntity.ok(promotions);
     }

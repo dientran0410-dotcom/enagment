@@ -15,15 +15,22 @@ import java.util.UUID;
 
 public interface LoyaltyService {
 
-    CustomerEngagementResponse getCustomerEngagement(UUID customerId, Long franchiseId);
+    CustomerEngagementResponse getCustomerEngagement(UUID customerId, UUID franchiseId);
 
-    List<TransactionHistoryResponse> getTransactionHistory(UUID customerId, Long franchiseId);
+    List<TransactionHistoryResponse> getTransactionHistory(UUID customerId, UUID franchiseId);
 
     Page<CustomerEngagementResponse> getAllCustomers(
-            Long franchiseId,
+            UUID franchiseId,
             Long tierId,
             Pageable pageable
     );
+
+    // ===== Customer Registration =====
+    /**
+     * Register a new customer to loyalty system
+     * Called when a customer creates an account or first time joining a franchise
+     */
+    CustomerEngagementResponse registerCustomer(UUID customerId, UUID franchiseId, String jwtToken);
 
     // ===== Loyalty Tier =====
     LoyaltyTierResponse createTier(CreateLoyaltyTierRequest request);
@@ -31,15 +38,15 @@ public interface LoyaltyService {
     @Transactional(readOnly = true)
     List<LoyaltyTierResponse> getAllTiers();
 
-    LoyaltyTierResponse updateTier(Long franchiseId,
+    LoyaltyTierResponse updateTier(UUID franchiseId,
                                    TierName name,
                                    CreateLoyaltyTierRequest request);
-    void deleteTier(Long franchiseId, TierName tierName);
+    void deleteTier(UUID franchiseId, TierName tierName);
     //======  LoyaltyRule =======
-    LoyaltyRuleResponse createRule(Long franchiseId, LoyaltyRuleRequest request);
+    LoyaltyRuleResponse createRule(UUID franchiseId, LoyaltyRuleRequest request);
     List<LoyaltyRuleResponse> getAllRules();
-    LoyaltyRuleResponse updateRule(Long franchiseId, EventType eventType, LoyaltyRuleRequest request);
-    void deleteRule(Long franchiseId, EventType eventType);
+    LoyaltyRuleResponse updateRule(UUID franchiseId, EventType eventType, LoyaltyRuleRequest request);
+    void deleteRule(UUID franchiseId, EventType eventType);
 
     // ===== Redeem =====
     RedeemResponse redeem(RedeemRequest redeemRequest,UUID customerId);

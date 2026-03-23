@@ -7,6 +7,8 @@ import lombok.experimental.SuperBuilder;
 import service.CSFC.CSFC_auth_service.infrastructure.BaseEntity;
 import service.CSFC.CSFC_auth_service.model.constants.TierName;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "loyalty_tier")
 @Getter
@@ -17,7 +19,7 @@ import service.CSFC.CSFC_auth_service.model.constants.TierName;
 public class LoyaltyTier extends BaseEntity {
 
     @Column(name = "franchise_id", nullable = false)
-    private Long franchiseId;
+    private UUID franchiseId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

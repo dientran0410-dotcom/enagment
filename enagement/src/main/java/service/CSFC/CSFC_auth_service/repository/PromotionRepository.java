@@ -10,6 +10,7 @@ import service.CSFC.CSFC_auth_service.model.entity.Promotion;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
 public interface PromotionRepository extends JpaRepository<Promotion, Long> {
@@ -20,13 +21,13 @@ public interface PromotionRepository extends JpaRepository<Promotion, Long> {
            "WHERE p.franchiseId = :franchiseId " +
            "AND p.status IN :statuses  " +
            "AND (:startDate <= p.endDate AND :endDate >= p.startDate)")
-    boolean existsOverlappingPromotion(@Param("franchiseId") Long franchiseId, 
-                                       @Param("startDate") LocalDateTime startDate, 
+    boolean existsOverlappingPromotion(@Param("franchiseId") UUID franchiseId,
+                                       @Param("startDate") LocalDateTime startDate,
                                        @Param("endDate") LocalDateTime endDate,
                                        @Param("statuses") List<PromotionStatus> statuses);
     List<Promotion> findByStatus(PromotionStatus status);
 
-    List<Promotion> findByStatusAndFranchiseId(PromotionStatus status, Long franchiseId);
+    List<Promotion> findByStatusAndFranchiseId(PromotionStatus status, UUID franchiseId);
 
     @Query("SELECT p FROM Promotion p " +
             "WHERE p.status IN :status " +
@@ -41,14 +42,14 @@ public interface PromotionRepository extends JpaRepository<Promotion, Long> {
             "AND p.startDate <= :now " +
             "AND p.endDate >= :now")
     List<Promotion> findActivePromotionsByFranchiseNow(
-            @Param("franchiseId") Long franchiseId,
+            @Param("franchiseId") UUID franchiseId,
             @Param("now") LocalDateTime now,
             @Param("status") PromotionStatus status
     );
 
     // New methods
-    List<Promotion> findByFranchiseId(Long franchiseId);
-    
+    List<Promotion> findByFranchiseId(UUID franchiseId);
+
     long countByStatus(PromotionStatus status);
     
     @Query("SELECT p FROM Promotion p " +

@@ -6,9 +6,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import service.CSFC.CSFC_auth_service.common.client.dto.ExternalFranchiseResponse;
 
+import java.util.UUID;
+
 @FeignClient(name = "franchise-service")
 public interface FranchiseClient {
 
     @GetMapping("/api/v1/franchises/{id}")
-    ExternalFranchiseResponse getFranchiseById(@PathVariable("id") Long id);
+    ExternalFranchiseResponse getFranchiseById(@PathVariable("id") UUID id);
 }

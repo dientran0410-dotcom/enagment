@@ -18,16 +18,16 @@ import java.util.UUID;
 public interface CustomerFranchiseRepository extends JpaRepository<CustomerFranchise, Long> {
 
     // Tìm khách hàng theo User ID và Franchise ID (để check xem họ đã từng mua hàng ở đây chưa)
-    Optional<CustomerFranchise> findByCustomerIdAndFranchiseId(UUID customerId, Long franchiseId);
+    Optional<CustomerFranchise> findByCustomerIdAndFranchiseId(UUID customerId, UUID franchiseId);
 
     // Kiểm tra nhanh xem khách hàng tồn tại chưa (trả về true/false)
-    boolean existsByCustomerIdAndFranchiseId(Long customerId, Long franchiseId);
+    boolean existsByCustomerIdAndFranchiseId(UUID customerId, UUID franchiseId);
 
     @Query("SELECT cf FROM CustomerFranchise cf " +
             "WHERE (:franchiseId IS NULL OR cf.franchiseId = :franchiseId) " +
             "AND (:tierId IS NULL OR cf.tier.id = :tierId)")
     Page<CustomerFranchise> findByFilters(
-            @Param("franchiseId") Long franchiseId,
+            @Param("franchiseId") UUID franchiseId,
             @Param("tierId") Long tierId,
             Pageable pageable
     );

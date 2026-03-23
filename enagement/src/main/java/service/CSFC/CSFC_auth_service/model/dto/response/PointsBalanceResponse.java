@@ -11,7 +11,7 @@ import java.util.UUID;
 @Setter
 public class PointsBalanceResponse {
     private UUID customerId;
-    private Long franchiseId;
+    private UUID franchiseId;
     private Integer currentPoints;
     private Integer totalEarnedPoints;
     private TierInfoDTO tier;

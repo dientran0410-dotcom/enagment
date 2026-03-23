@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import service.CSFC.CSFC_auth_service.model.dto.request.RedeemRequest;
+import service.CSFC.CSFC_auth_service.model.dto.response.ApiResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.CustomerEngagementResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.RedeemResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.TransactionHistoryResponse;
@@ -45,7 +46,7 @@ public class CustomerLoyaltyController {
     @GetMapping("/customers/{customerId}/franchise/{franchiseId}")
     public ResponseEntity<CustomerEngagementResponse> getCustomerEngagement(
             @PathVariable UUID customerId,
-            @PathVariable Long franchiseId) {
+            @PathVariable UUID franchiseId) {
 
         if (isCustomer()) {
             UUID currentUserId = getCurrentUserId();
@@ -65,7 +66,7 @@ public class CustomerLoyaltyController {
     @GetMapping("/customers/{customerId}/franchise/{franchiseId}/transactions")
     public ResponseEntity<List<TransactionHistoryResponse>> getTransactionHistory(
             @PathVariable UUID customerId,
-            @PathVariable Long franchiseId) {
+            @PathVariable UUID franchiseId) {
 
         if (isCustomer()) {
             UUID currentUserId = getCurrentUserId();
@@ -80,6 +81,23 @@ public class CustomerLoyaltyController {
         return ResponseEntity.ok(transactions);
     }
 
+    // ================= CUSTOMER REGISTRATION =================
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @PostMapping("/register/{franchiseId}")
+    public ResponseEntity<ApiResponse<CustomerEngagementResponse>> registerCustomer(
+            @PathVariable UUID franchiseId) {
+
+        UUID customerId = getCurrentUserId();
+        String jwtToken = getJwtToken();
+
+        CustomerEngagementResponse response =
+                loyaltyService.registerCustomer(customerId, franchiseId, jwtToken);
+
+        return ResponseEntity.status(201).body(
+                ApiResponse.success(response, "Customer registered successfully for franchise")
+        );
+    }
+
     // ================= REDEEM =================
     @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/redeem")
@@ -91,5 +109,15 @@ public class CustomerLoyaltyController {
                 loyaltyService.redeem(request, customerId);
 
         return ResponseEntity.ok(response);
+    }
+
+    // ================= HELPER METHODS =================
+    private String getJwtToken() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getCredentials() instanceof String) {
+            return (String) auth.getCredentials();
+        }
+        // Fallback: extract from request header
+        return SecurityContextHolder.getContext().getAuthentication().toString();
     }
 }

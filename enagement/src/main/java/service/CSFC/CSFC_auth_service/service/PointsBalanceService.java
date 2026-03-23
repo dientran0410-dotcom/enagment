@@ -6,5 +6,5 @@ import service.CSFC.CSFC_auth_service.model.dto.response.PointsBalanceResponse;
 import java.util.UUID;
 
 public interface PointsBalanceService {
-    PointsBalanceResponse getPointsBalance(UUID customerId, Long franchiseId);
+    PointsBalanceResponse getPointsBalance(UUID customerId, UUID franchiseId);
 }

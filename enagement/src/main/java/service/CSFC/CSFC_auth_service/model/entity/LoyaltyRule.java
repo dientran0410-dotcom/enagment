@@ -7,6 +7,7 @@ import service.CSFC.CSFC_auth_service.infrastructure.BaseEntity;
 import service.CSFC.CSFC_auth_service.model.constants.EventType;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "loyalty_rule")
@@ -18,7 +19,7 @@ import java.time.LocalDateTime;
 public class LoyaltyRule extends BaseEntity {
 
     @Column(name = "franchise_id")
-    private Long franchiseId;
+    private UUID franchiseId;
 
     private String name; // VD: Tích điểm sinh nhật
 

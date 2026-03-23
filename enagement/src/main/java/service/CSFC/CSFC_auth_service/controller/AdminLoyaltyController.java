@@ -22,6 +22,7 @@ import service.CSFC.CSFC_auth_service.model.dto.response.LoyaltyTierResponse;
 import service.CSFC.CSFC_auth_service.service.LoyaltyService;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/engagement-service/admin/loyalty")
@@ -39,7 +40,7 @@ public class AdminLoyaltyController {
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
     @GetMapping("/customers")
     public ResponseEntity<Page<CustomerEngagementResponse>> getAllCustomers(
-            @Parameter(description = "Filter by franchise ID") @RequestParam(required = false) Long franchiseId,
+            @Parameter(description = "Filter by franchise ID") @RequestParam(required = false) UUID franchiseId,
             @Parameter(description = "Filter by tier ID") @RequestParam(required = false) Long tierId,
             @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size) {
@@ -76,7 +77,7 @@ public class AdminLoyaltyController {
     @Operation(summary = "Update tier theo franchise id và tier name")
     @PutMapping("/{franchiseId}/{tierName}")
     public ResponseEntity<LoyaltyTierResponse> updateTier(
-            @PathVariable Long franchiseId,
+            @PathVariable UUID franchiseId,
             @PathVariable TierName tierName,
             @RequestBody CreateLoyaltyTierRequest request) {
         return ResponseEntity.ok(
@@ -88,7 +89,7 @@ public class AdminLoyaltyController {
     @Operation(summary = "Delete tier")
     @DeleteMapping("/tiers")
     public ResponseEntity<Void> deleteTier(
-            @RequestParam Long franchiseId,
+            @RequestParam UUID franchiseId,
             @RequestParam TierName tierName) {
         loyaltyService.deleteTier(franchiseId, tierName);
         return ResponseEntity.noContent().build();
@@ -100,7 +101,7 @@ public class AdminLoyaltyController {
     @Operation(summary = "Create rule")
     @PostMapping("/franchises/{franchiseId}/rules")
     public ResponseEntity<LoyaltyRuleResponse> createRule(
-            @PathVariable Long franchiseId,
+            @PathVariable UUID franchiseId,
             @RequestBody LoyaltyRuleRequest request) {
         return ResponseEntity.ok(loyaltyService.createRule(franchiseId, request));
     }
@@ -116,7 +117,7 @@ public class AdminLoyaltyController {
     @Operation(summary = "Update rule by franchise and event type")
     @PutMapping("/franchises/{franchiseId}/rules/event/{eventType}")
     public ResponseEntity<LoyaltyRuleResponse> updateRule(
-            @PathVariable Long franchiseId,
+            @PathVariable UUID franchiseId,
             @PathVariable EventType eventType,
             @RequestBody LoyaltyRuleRequest request) {
         return ResponseEntity.ok(loyaltyService.updateRule(franchiseId, eventType, request));
@@ -126,7 +127,7 @@ public class AdminLoyaltyController {
     @Operation(summary = "Delete rule")
     @DeleteMapping("/franchises/{franchiseId}/rules/event/{eventType}")
     public ResponseEntity<Void> deleteRule(
-            @PathVariable Long franchiseId,
+            @PathVariable UUID franchiseId,
             @PathVariable EventType eventType) {
         loyaltyService.deleteRule(franchiseId, eventType);
         return ResponseEntity.noContent().build();
