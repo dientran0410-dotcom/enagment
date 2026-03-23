@@ -382,13 +382,22 @@ public class LoyaltyServiceImpl implements LoyaltyService {
 
         // Lấy UUID trực tiếp
         UUID customerId = UUID.fromString(profile.getId());
-//        UUID franchiseId = UUID.fromString(franchiseIdInput);
 
         // Map vào entity
         CustomerFranchise cf = new CustomerFranchise();
         cf.setCustomerId(customerId);
         cf.setFranchiseId(franchiseId);
         cf.setStatus(CustomerStatus.ACTIVE);
+
+        // Gán tier BRONZE (tier mặc định) cho customer mới
+        LoyaltyTier bronzeTier = tierRepository.findByFranchiseIdAndName(franchiseId, TierName.BRONZE)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Default BRONZE tier not found for franchise: " + franchiseId));
+        cf.setTier(bronzeTier);
+
+        // Khởi tạo points = 0
+        cf.setCurrentPoints(0);
+        cf.setTotalEarnedPoints(0);
 
         return customerFranchiseRepository.save(cf);
     }
