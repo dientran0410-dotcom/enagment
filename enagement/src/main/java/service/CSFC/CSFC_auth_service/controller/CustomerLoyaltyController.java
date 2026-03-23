@@ -34,13 +34,21 @@ public class CustomerLoyaltyController {
             throw new AccessDeniedException("User not authenticated");
         }
 
-        return UUID.fromString(auth.getName());
+        String userId = auth.getName();
+        try {
+            return UUID.fromString(userId);
+        } catch (IllegalArgumentException e) {
+            throw new AccessDeniedException("Invalid user ID format: " + userId);
+        }
     }
 
     private boolean isCustomer() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getAuthorities() == null) {
+            return false;
+        }
         return auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_CUSTOMER"));
+                .anyMatch(a -> a != null && a.getAuthority() != null && a.getAuthority().equals("ROLE_CUSTOMER"));
     }
 
     // ================= CUSTOMER ENGAGEMENT =================
