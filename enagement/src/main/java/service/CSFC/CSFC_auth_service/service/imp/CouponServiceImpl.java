@@ -355,6 +355,8 @@ public class CouponServiceImpl implements CouponService {
         response.setUsedCount(coupon.getUsedCount());
         response.setMinTier(coupon.getMinTier());
         response.setIsPublic(coupon.getIsPublic());
+        response.setCreatedAt(coupon.getCreatedAt());
+        response.setExpiredAt(coupon.getExpiredAt());
 
         return response;
     }
