@@ -96,7 +96,7 @@ public class AdminLoyaltyController {
 
     // ========== Loyalty Rules ================
 
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Create rule")
     @PostMapping("/franchises/{franchiseId}/rules")
     public ResponseEntity<LoyaltyRuleResponse> createRule(
