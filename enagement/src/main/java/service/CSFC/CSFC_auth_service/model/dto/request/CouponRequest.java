@@ -3,6 +3,8 @@ package service.CSFC.CSFC_auth_service.model.dto.request;
 import lombok.*;
 import service.CSFC.CSFC_auth_service.model.constants.DiscountType;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -29,4 +31,6 @@ public class CouponRequest {
     private Long minTierId;
 
     private Boolean isPublic;
+
+    private LocalDateTime expiryAt;
 }

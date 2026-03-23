@@ -59,6 +59,7 @@ public class CouponMapper {
                 .userLimit(couponRequest.getUserLimit())
                 .minTier(tier)
                 .isPublic(couponRequest.getIsPublic())
+                .expiredAt(couponRequest.getExpiryAt())
                 .build();
 
     }
