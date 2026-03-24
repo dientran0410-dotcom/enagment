@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import service.CSFC.CSFC_auth_service.model.entity.Coupon;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,8 +43,8 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
           AND (p.startDate IS NULL OR p.startDate <= :now)
           AND (p.endDate IS NULL OR p.endDate >= :now)
           AND (c.usageLimit IS NULL OR c.usedCount < c.usageLimit)
-          AND (c.expiredAt IS NULL OR c.expiredAt >= :now)
+          AND (c.expiredAt IS NULL OR DATE(c.expiredAt) >= CURRENT_DATE)
         ORDER BY c.createdAt DESC
     """)
-    List<Coupon> findActiveCouponsForCustomer(@Param("now") java.time.LocalDateTime now);
+    List<Coupon> findActiveCouponsForCustomer(@Param("now") LocalDateTime now);
 }

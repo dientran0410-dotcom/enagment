@@ -59,7 +59,7 @@ public class CouponMapper {
                 .userLimit(couponRequest.getUserLimit())
                 .minTier(tier)
                 .isPublic(couponRequest.getIsPublic())
-                .expiredAt(couponRequest.getExpiryAt())
+                .expiredAt(couponRequest.getExpiredAt())
                 .build();
 
     }
@@ -74,9 +74,9 @@ public class CouponMapper {
         coupon.setUsageLimit(request.getUsageLimit());
         coupon.setUserLimit(request.getUserLimit());
         coupon.setIsPublic(request.getIsPublic());
-        // Map expiry/expired field when provided in the request
-        if (request.getExpiryAt() != null) {
-            coupon.setExpiredAt(request.getExpiryAt());
+        // Map expired field when provided in the request
+        if (request.getExpiredAt() != null) {
+            coupon.setExpiredAt(request.getExpiredAt());
         }
     }
 }
