@@ -348,7 +348,7 @@ public class LoyaltyServiceImpl implements LoyaltyService {
         // Validate reward belongs to this franchise
         // Note: Reward.franchiseId is Long, CustomerFranchise.franchiseId is UUID
         // We need to convert and compare or validate separately
-        Long rewardFranchiseId = reward.getFranchiseId();
+        UUID rewardFranchiseId = reward.getFranchiseId();
         if (rewardFranchiseId == null) {
             throw new IllegalArgumentException("Reward franchise ID is null");
         }

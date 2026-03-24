@@ -8,6 +8,8 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import service.CSFC.CSFC_auth_service.infrastructure.BaseEntity;
 
+import java.util.UUID;
+
 @Entity
 @Table(name = "reward")
 @Getter
@@ -18,7 +20,7 @@ import service.CSFC.CSFC_auth_service.infrastructure.BaseEntity;
 public class Reward extends BaseEntity {
 
     @Column(name = "franchise_id", nullable = false)
-    private Long franchiseId; // Phần thưởng thuộc về chuỗi nào
+    private UUID franchiseId; // Phần thưởng thuộc về chuỗi nào
 
     @Column(nullable = false)
     private String name; // Tên phần thưởng

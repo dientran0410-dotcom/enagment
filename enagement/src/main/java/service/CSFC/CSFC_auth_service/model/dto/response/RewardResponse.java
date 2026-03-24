@@ -5,13 +5,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 @Builder
 public class RewardResponse {
     private Long id;
-    private Long franchiseId;
+    private UUID franchiseId;
     private String name;
     private Integer requiredPoints;
     private String description;
