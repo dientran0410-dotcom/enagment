@@ -24,7 +24,7 @@ public class AdminRewardController {
     public ResponseEntity<ApiResponse<RewardResponse>> createReward(@Valid @ModelAttribute RewardRequest request) {
 
 
-        RewardResponse rewardResponse = rewardService.createReward(request,request.getImageFile());
+        RewardResponse rewardResponse = rewardService.createReward(request,request.getImageUrl());
 
        return ResponseEntity.ok(
                 ApiResponse.success(rewardResponse, "Reward created successfully")
@@ -37,7 +37,7 @@ public class AdminRewardController {
             @PathVariable Long id,
             @Valid @ModelAttribute RewardRequest request) {
 
-        RewardResponse updateReward = rewardService.updateReward(id, request, request.getImageFile());
+        RewardResponse updateReward = rewardService.updateReward(id, request, request.getImageUrl());
 
         return ResponseEntity.ok(
                 ApiResponse.success(updateReward, "Reward updated successfully")

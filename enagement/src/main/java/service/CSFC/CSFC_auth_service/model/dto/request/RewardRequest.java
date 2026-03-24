@@ -16,5 +16,5 @@ public class RewardRequest {
     private Integer requiredPoints;
     private String description;
     private Boolean active;
-    private MultipartFile imageFile;
+    private MultipartFile imageUrl;
 }

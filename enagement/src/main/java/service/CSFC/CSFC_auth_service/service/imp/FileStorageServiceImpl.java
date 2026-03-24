@@ -1,23 +1,20 @@
 package service.CSFC.CSFC_auth_service.service.imp;
 
-
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import service.CSFC.CSFC_auth_service.service.FileStorageService;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-import java.util.UUID;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
-public class FileStorageServiceImpl implements FileStorageService
-{
-    private static final String UPLOAD_DIR = "uploads/rewards/";
+public class FileStorageServiceImpl implements FileStorageService {
+
+    private final Cloudinary cloudinary;
 
     @Override
     public String saveImage(MultipartFile file) {
@@ -32,20 +29,16 @@ public class FileStorageServiceImpl implements FileStorageService
         }
 
         try {
-            Path uploadPath = Paths.get(UPLOAD_DIR);
-            Files.createDirectories(uploadPath);
+            Map uploadResult = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder", "rewards",
+                            "resource_type", "image"
+                    )
+            );
 
-            String originalName = file.getOriginalFilename();
-            String cleanName = originalName == null ? "image"
-                    : originalName.replaceAll("\\s+", "_")
-                    .replaceAll("[^a-zA-Z0-9._-]", "");
-
-            String fileName = UUID.randomUUID() + "_" + cleanName;
-            Path filePath = uploadPath.resolve(fileName);
-
-            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
-            return UPLOAD_DIR + fileName;
+            // 🔥 URL ảnh
+            return uploadResult.get("secure_url").toString();
 
         } catch (IOException e) {
             throw new RuntimeException("Upload image failed", e);
@@ -59,15 +52,9 @@ public class FileStorageServiceImpl implements FileStorageService
             return existingImageUrl;
         }
 
-        String contentType = newFile.getContentType();
-        if (contentType == null || !contentType.startsWith("image/")) {
-            throw new RuntimeException("File must be an image");
-        }
-
-        // 🔥 XÓA ẢNH CŨ
+        // 🔥 XÓA ẢNH CŨ TRÊN CLOUD
         deleteImage(existingImageUrl);
 
-        // 🔥 LƯU ẢNH MỚI
         return saveImage(newFile);
     }
 
@@ -77,14 +64,24 @@ public class FileStorageServiceImpl implements FileStorageService
         if (imageUrl == null || imageUrl.isBlank()) return;
 
         try {
-            String fileName = Paths.get(imageUrl).getFileName().toString();
-            Path filePath = Paths.get(UPLOAD_DIR).resolve(fileName);
+            // 🔥 Lấy public_id từ URL
+            String publicId = extractPublicId(imageUrl);
 
-            Files.deleteIfExists(filePath);
+            cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
 
-        } catch (IOException e) {
-            throw new RuntimeException("Không thể xóa file ảnh", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Không thể xóa ảnh trên Cloudinary", e);
         }
     }
 
+    private String extractPublicId(String imageUrl) {
+        // ví dụ URL:
+        // https://res.cloudinary.com/xxx/image/upload/v123/rewards/abc.jpg
+
+        String[] parts = imageUrl.split("/");
+        String fileName = parts[parts.length - 1]; // abc.jpg
+        String folder = parts[parts.length - 2];   // rewards
+
+        return folder + "/" + fileName.substring(0, fileName.lastIndexOf("."));
+    }
 }
