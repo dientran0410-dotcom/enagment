@@ -37,7 +37,7 @@ public class FileStorageServiceImpl implements FileStorageService {
                     )
             );
 
-            // 🔥 URL ảnh
+            // URL ảnh
             return uploadResult.get("secure_url").toString();
 
         } catch (IOException e) {
@@ -52,7 +52,7 @@ public class FileStorageServiceImpl implements FileStorageService {
             return existingImageUrl;
         }
 
-        // 🔥 XÓA ẢNH CŨ TRÊN CLOUD
+        // XÓA ẢNH CŨ TRÊN CLOUD
         deleteImage(existingImageUrl);
 
         return saveImage(newFile);
@@ -64,7 +64,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         if (imageUrl == null || imageUrl.isBlank()) return;
 
         try {
-            // 🔥 Lấy public_id từ URL
+            // Lấy public_id từ URL
             String publicId = extractPublicId(imageUrl);
 
             cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
@@ -75,8 +75,6 @@ public class FileStorageServiceImpl implements FileStorageService {
     }
 
     private String extractPublicId(String imageUrl) {
-        // ví dụ URL:
-        // https://res.cloudinary.com/xxx/image/upload/v123/rewards/abc.jpg
 
         String[] parts = imageUrl.split("/");
         String fileName = parts[parts.length - 1]; // abc.jpg
