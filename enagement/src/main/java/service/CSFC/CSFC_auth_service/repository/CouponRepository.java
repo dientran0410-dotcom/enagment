@@ -43,7 +43,7 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
           AND (p.startDate IS NULL OR p.startDate <= :now)
           AND (p.endDate IS NULL OR p.endDate >= :now)
           AND (c.usageLimit IS NULL OR c.usedCount < c.usageLimit)
-          AND (c.expiredAt IS NULL OR DATE(c.expiredAt) >= CURRENT_DATE)
+          AND (c.expiredAt IS NULL OR c.expiredAt >= :now)
         ORDER BY c.createdAt DESC
     """)
     List<Coupon> findActiveCouponsForCustomer(@Param("now") LocalDateTime now);
