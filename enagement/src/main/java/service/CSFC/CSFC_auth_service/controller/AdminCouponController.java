@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,7 +16,6 @@ import service.CSFC.CSFC_auth_service.model.dto.request.GenerateCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.ApiResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.CouponResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.GenerateCouponResponse;
-import service.CSFC.CSFC_auth_service.model.entity.Coupon;
 import service.CSFC.CSFC_auth_service.service.CouponService;
 @RequiredArgsConstructor
 @RestController
@@ -27,6 +25,20 @@ public class AdminCouponController {
 
 
     private final CouponService couponService;
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/create")
+    @Operation(
+            summary = "Create Coupon",
+            description = "Create a new coupon with specific configuration"
+    )
+    public ResponseEntity<ApiResponse<CouponResponse>> createCoupon(
+            @Valid @RequestBody CouponRequest request) {
+        CouponResponse response = couponService.createCoupon(request);
+        return ResponseEntity.ok(
+                ApiResponse.success(response, "Coupon created successfully")
+        );
+    }
 
     @PostMapping("/generate")
     @Operation(
@@ -53,6 +65,7 @@ public class AdminCouponController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
+
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/validate/{code}")
     @Operation(

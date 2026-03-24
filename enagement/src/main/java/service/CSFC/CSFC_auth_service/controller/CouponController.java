@@ -2,12 +2,10 @@ package service.CSFC.CSFC_auth_service.controller;
 
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import service.CSFC.CSFC_auth_service.model.dto.request.ApplyCouponRequest;
-import service.CSFC.CSFC_auth_service.model.dto.request.CouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.ApiResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.ApplyCouponResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.CouponCodeResponse;
@@ -17,7 +15,6 @@ import service.CSFC.CSFC_auth_service.service.CouponCodeGeneratorService;
 import service.CSFC.CSFC_auth_service.service.CouponService;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/engagement-service/coupons")
@@ -51,15 +48,6 @@ public class CouponController {
         );
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("create")
-    public ResponseEntity<ApiResponse<CouponResponse>> createCoupon(@RequestBody CouponRequest request) {
-        CouponResponse response = couponService.createCoupon(request);
-
-        return ResponseEntity.ok(
-                ApiResponse.success(response, "Coupon created successfully")
-        );
-    }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
     @PostMapping("/generate-qr")

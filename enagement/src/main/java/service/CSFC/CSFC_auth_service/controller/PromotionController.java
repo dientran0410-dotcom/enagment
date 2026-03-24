@@ -39,7 +39,7 @@ public class PromotionController {
         @ApiResponse(responseCode = "201", description = "Tạo promotion thành công"),
         @ApiResponse(responseCode = "400", description = "Dữ liệu không hợp lệ")
     })
-    @PostMapping("create")
+    @PostMapping("/create")
     public ResponseEntity<Promotion> createPromotion(@Valid @RequestBody CreatePromotionRequest request) {
         try {
             System.out.println("=== CREATE PROMOTION REQUEST ===");
@@ -65,7 +65,7 @@ public class PromotionController {
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Lấy danh sách thành công")
     })
-    @GetMapping("get-All")
+    @GetMapping("/get-all")
     public ResponseEntity<List<Promotion>> getAllPromotions() {
         List<Promotion> promotions = promotionService.getAllPromotions();
         return ResponseEntity.ok(promotions);
@@ -84,6 +84,51 @@ public class PromotionController {
             @Parameter(description = "ID của franchise (optional)", example = "1")
             @RequestParam(required = false) UUID franchiseId) {
         List<Promotion> promotions = promotionService.getActivePromotions(franchiseId);
+        return ResponseEntity.ok(promotions);
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
+    @Operation(
+        summary = "Dashboard tổng quan promotions",
+        description = "Lấy thống kê tổng quan: tổng số promotions, active, sắp hết hạn, top promotions"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lấy dashboard thành công")
+    })
+    @GetMapping("/dashboard")
+    public ResponseEntity<?> getPromotionDashboard() {
+        return ResponseEntity.ok(promotionService.getDashboard());
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
+    @Operation(
+        summary = "Lấy promotions theo franchise",
+        description = "Lấy tất cả promotions của một franchise cụ thể"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lấy danh sách thành công")
+    })
+    @GetMapping("/franchise/{franchiseId}")
+    public ResponseEntity<List<Promotion>> getPromotionsByFranchise(
+            @Parameter(description = "ID của franchise", example = "1")
+            @PathVariable UUID franchiseId) {
+        List<Promotion> promotions = promotionService.getPromotionsByFranchise(franchiseId);
+        return ResponseEntity.ok(promotions);
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
+    @Operation(
+        summary = "Lấy promotions theo status",
+        description = "Lấy danh sách promotions theo trạng thái (DRAFT, ACTIVE, INACTIVE, EXPIRED)"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lấy danh sách thành công")
+    })
+    @GetMapping("/status/{status}")
+    public ResponseEntity<List<Promotion>> getPromotionsByStatus(
+            @Parameter(description = "Status của promotion", example = "ACTIVE")
+            @PathVariable PromotionStatus status) {
+        List<Promotion> promotions = promotionService.getPromotionsByStatus(status);
         return ResponseEntity.ok(promotions);
     }
 
@@ -169,38 +214,6 @@ public class PromotionController {
         return ResponseEntity.noContent().build();
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
-    @Operation(
-        summary = "Lấy promotions theo franchise",
-        description = "Lấy tất cả promotions của một franchise cụ thể"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Lấy danh sách thành công")
-    })
-    @GetMapping("/franchise/{franchiseId}")
-    public ResponseEntity<List<Promotion>> getPromotionsByFranchise(
-            @Parameter(description = "ID của franchise", example = "1")
-            @PathVariable UUID franchiseId) {
-        List<Promotion> promotions = promotionService.getPromotionsByFranchise(franchiseId);
-        return ResponseEntity.ok(promotions);
-    }
-
-    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
-    @Operation(
-        summary = "Lấy promotions theo status",
-        description = "Lấy danh sách promotions theo trạng thái (DRAFT, ACTIVE, INACTIVE, EXPIRED)"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Lấy danh sách thành công")
-    })
-    @GetMapping("/status/{status}")
-    public ResponseEntity<List<Promotion>> getPromotionsByStatus(
-            @Parameter(description = "Status của promotion", example = "ACTIVE")
-            @PathVariable PromotionStatus status) {
-        List<Promotion> promotions = promotionService.getPromotionsByStatus(status);
-        return ResponseEntity.ok(promotions);
-    }
-
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
     @Operation(
         summary = "Lấy danh sách coupons của promotion",
@@ -233,17 +246,5 @@ public class PromotionController {
         return ResponseEntity.ok(promotionService.getPromotionStats(id));
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
-    @Operation(
-        summary = "Dashboard tổng quan promotions",
-        description = "Lấy thống kê tổng quan: tổng số promotions, active, sắp hết hạn, top promotions"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Lấy dashboard thành công")
-    })
-    @GetMapping("/dashboard")
-    public ResponseEntity<?> getPromotionDashboard() {
-        return ResponseEntity.ok(promotionService.getDashboard());
-    }
 
 }
