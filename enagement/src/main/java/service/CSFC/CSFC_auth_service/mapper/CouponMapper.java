@@ -3,7 +3,9 @@ package service.CSFC.CSFC_auth_service.mapper;
 import org.springframework.stereotype.Component;
 import service.CSFC.CSFC_auth_service.model.dto.request.CouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.CouponResponse;
+import service.CSFC.CSFC_auth_service.model.dto.response.CouponUsageResponse;
 import service.CSFC.CSFC_auth_service.model.entity.Coupon;
+import service.CSFC.CSFC_auth_service.model.entity.CouponUsage;
 import service.CSFC.CSFC_auth_service.model.entity.LoyaltyTier;
 import service.CSFC.CSFC_auth_service.model.entity.Promotion;
 
@@ -83,5 +85,20 @@ public class CouponMapper {
         if (request.getStartAt() != null) {
             coupon.setStartAt(request.getStartAt());
         }
+    }
+
+    public CouponUsageResponse mapToResponse(CouponUsage usage) {
+        Coupon coupon = usage.getCoupon();
+
+        return CouponUsageResponse.builder()
+                .id(usage.getId())
+                .customerId(usage.getCustomerId())
+                .couponId(coupon.getId())
+                .couponCode(coupon.getCode())
+                .discountType(coupon.getDiscountType())
+                .discountValue(coupon.getDiscountValue())
+                .status(usage.getStatus().name())
+                .createdAt(usage.getCreatedAt())
+                .build();
     }
 }

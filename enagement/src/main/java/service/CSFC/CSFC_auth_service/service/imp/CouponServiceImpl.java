@@ -4,6 +4,7 @@ package service.CSFC.CSFC_auth_service.service.imp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import service.CSFC.CSFC_auth_service.common.exception.ResourceNotFoundException;
 import service.CSFC.CSFC_auth_service.common.exception.coupon.CouponNotFoundException;
 import service.CSFC.CSFC_auth_service.common.exception.coupon.InvalidCouponException;
 import service.CSFC.CSFC_auth_service.mapper.CouponMapper;
@@ -12,10 +13,7 @@ import service.CSFC.CSFC_auth_service.model.constants.UsageStatus;
 import service.CSFC.CSFC_auth_service.model.dto.request.ApplyCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.CouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.GenerateCouponRequest;
-import service.CSFC.CSFC_auth_service.model.dto.response.ApplyCouponResponse;
-import service.CSFC.CSFC_auth_service.model.dto.response.CouponQrResponse;
-import service.CSFC.CSFC_auth_service.model.dto.response.CouponResponse;
-import service.CSFC.CSFC_auth_service.model.dto.response.GenerateCouponResponse;
+import service.CSFC.CSFC_auth_service.model.dto.response.*;
 import service.CSFC.CSFC_auth_service.model.entity.Coupon;
 import service.CSFC.CSFC_auth_service.model.entity.CouponUsage;
 import service.CSFC.CSFC_auth_service.model.entity.LoyaltyTier;
@@ -45,8 +43,6 @@ public class CouponServiceImpl implements CouponService {
     private final LoyaltyTierRepository loyaltyTierRepository;
 
     private final CouponMapper couponMapper;
-
-    private final QrCodeService qrCodeService;
 
     private final CouponUsageRepository couponUsageRepository;
 
@@ -427,21 +423,15 @@ public class CouponServiceImpl implements CouponService {
         coupon.setUsedCount(coupon.getUsedCount() + 1);
     }
 
-    @Transactional
-    public void checkout(UUID customerId, Long couponId) {
+    @Override
+    public List<CouponUsageResponse> getCustomerCouponUsage(UUID customerId) {
 
-        CouponUsage usage = couponUsageRepository
-                .findByCustomerIdAndCouponIdAndStatus(
-                        customerId,
-                        couponId,
-                        UsageStatus.PENDING
-                )
-                .orElseThrow(() -> new RuntimeException("Không có coupon đang áp dụng"));
+        List<CouponUsage> usages =
+                couponUsageRepository.findByCustomerIdWithCoupon(customerId);
 
-        usage.setStatus(UsageStatus.USED);
-
-        Coupon coupon = usage.getCoupon();
-        coupon.setUsedCount(coupon.getUsedCount() + 1);
+        return usages.stream()
+                .map(couponMapper::mapToResponse)
+                .toList();
     }
 
 }

@@ -3,11 +3,9 @@ package service.CSFC.CSFC_auth_service.service;
 import service.CSFC.CSFC_auth_service.model.dto.request.ApplyCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.CouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.GenerateCouponRequest;
-import service.CSFC.CSFC_auth_service.model.dto.response.ApplyCouponResponse;
-import service.CSFC.CSFC_auth_service.model.dto.response.CouponQrResponse;
-import service.CSFC.CSFC_auth_service.model.dto.response.CouponResponse;
-import service.CSFC.CSFC_auth_service.model.dto.response.GenerateCouponResponse;
+import service.CSFC.CSFC_auth_service.model.dto.response.*;
 import service.CSFC.CSFC_auth_service.model.entity.Coupon;
+import service.CSFC.CSFC_auth_service.model.entity.CouponUsage;
 
 import java.util.List;
 import java.util.UUID;
@@ -36,6 +34,7 @@ public interface CouponService {
 
     List<CouponResponse> getActiveCouponsForCustomer();
     void checkoutCoupon(UUID customerId, String couponCode);
+    List<CouponUsageResponse> getCustomerCouponUsage(UUID customerId);
 }
 
 
