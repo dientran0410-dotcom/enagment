@@ -33,7 +33,7 @@ public interface CouponService {
 
 
     List<CouponResponse> getActiveCouponsForCustomer();
-    void checkoutCoupon(UUID customerId, String couponCode);
+    double checkoutCoupon(UUID customerId, String couponCode, Double orderValue);
     List<CouponUsageResponse> getCustomerCouponUsage(UUID customerId);
 }
 

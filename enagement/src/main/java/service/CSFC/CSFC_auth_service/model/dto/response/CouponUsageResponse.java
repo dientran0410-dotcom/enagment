@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import service.CSFC.CSFC_auth_service.model.constants.DiscountType;
+import service.CSFC.CSFC_auth_service.model.constants.UsageStatus;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -22,6 +23,8 @@ public class CouponUsageResponse {
     private String couponCode;
     private DiscountType discountType;
     private Double discountValue;
-    private String status;
+    private UsageStatus status;
     private LocalDateTime createdAt;
+    private LocalDateTime expiredAt;
+    private LocalDateTime usedAt;
 }

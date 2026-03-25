@@ -2,6 +2,7 @@ package service.CSFC.CSFC_auth_service.repository;
 
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -47,4 +48,12 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
         ORDER BY c.createdAt DESC
     """)
     List<Coupon> findActiveCouponsForCustomer(@Param("now") LocalDateTime now);
+
+    @Modifying
+    @Query("""
+    UPDATE Coupon c
+    SET c.usedCount = c.usedCount + 1
+    WHERE c.id = :id AND c.usedCount < c.usageLimit
+""")
+    int incrementUsageIfAvailable(@Param("id") Long id);
 }
