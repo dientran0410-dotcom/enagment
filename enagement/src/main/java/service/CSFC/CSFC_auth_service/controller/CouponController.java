@@ -6,10 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import service.CSFC.CSFC_auth_service.model.dto.request.ApplyCouponRequest;
-import service.CSFC.CSFC_auth_service.model.dto.request.CouponRequest;
-import service.CSFC.CSFC_auth_service.model.dto.request.GenerateCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.*;
-import service.CSFC.CSFC_auth_service.model.entity.Coupon;
 import service.CSFC.CSFC_auth_service.service.CouponService;
 
 import java.util.List;
@@ -70,6 +67,18 @@ public class CouponController {
 
         return ResponseEntity.ok(
                 ApiResponse.success("OK", "Thanh toán thành công, coupon đã được sử dụng")
+        );
+    }
+
+    @GetMapping("/my-applied/{customerId}")
+    public ResponseEntity<ApiResponse<List<CouponUsageResponse>>> getByCustomerId(
+            @PathVariable UUID customerId) {
+
+        List<CouponUsageResponse> result =
+                couponService.getCustomerCouponUsage(customerId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(result,"Lấy lịch sử thành công")
         );
     }
 }
