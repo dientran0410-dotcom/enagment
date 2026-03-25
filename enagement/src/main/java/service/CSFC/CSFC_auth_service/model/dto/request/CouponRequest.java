@@ -32,5 +32,7 @@ public class CouponRequest {
 
     private Boolean isPublic;
 
+    private LocalDateTime startAt;
+
     private LocalDateTime expiredAt;
 }

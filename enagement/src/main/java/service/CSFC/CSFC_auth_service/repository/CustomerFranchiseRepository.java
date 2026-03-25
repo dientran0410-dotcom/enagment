@@ -34,7 +34,7 @@ public interface CustomerFranchiseRepository extends JpaRepository<CustomerFranc
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT cf FROM CustomerFranchise cf WHERE cf.customerId =:id")
-    Optional<CustomerFranchise> findByCustomerIdForUpdate(@Param("id") Long id);
+    Optional<CustomerFranchise> findByCustomerIdForUpdate(@Param("id") UUID id);
 
     Optional<CustomerFranchise> findByCustomerId(UUID customerId);
 

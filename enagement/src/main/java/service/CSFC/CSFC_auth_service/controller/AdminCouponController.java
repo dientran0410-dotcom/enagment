@@ -16,86 +16,100 @@ import service.CSFC.CSFC_auth_service.model.dto.request.GenerateCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.ApiResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.CouponResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.GenerateCouponResponse;
+import service.CSFC.CSFC_auth_service.model.entity.Coupon;
 import service.CSFC.CSFC_auth_service.service.CouponService;
+
+import java.util.List;
+
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/engagement-service/coupons")
-@Tag(name = "Admin Coupon Management", description = "APIs for generating and managing coupon codes")
+@Tag(name = "Admin Coupon Management", description = "APIs for managing coupons")
 public class AdminCouponController {
-
 
     private final CouponService couponService;
 
+    // ================= GET ALL =================
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
+    @GetMapping("/get-all")
+    public ResponseEntity<ApiResponse<List<Coupon>>> getAll() {
+
+        return ResponseEntity.ok(
+                ApiResponse.success(couponService.getAll(), "Get all coupons successfully")
+        );
+    }
+
+    // ================= CREATE =================
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/create")
     @Operation(
             summary = "Create Coupon",
-            description = "Create a new coupon with specific configuration"
+            description = "Create a new coupon (1 coupon = 1 code)"
     )
     public ResponseEntity<ApiResponse<CouponResponse>> createCoupon(
             @Valid @RequestBody CouponRequest request) {
+
         CouponResponse response = couponService.createCoupon(request);
-        return ResponseEntity.ok(
-                ApiResponse.success(response, "Coupon created successfully")
-        );
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(response, "Coupon created successfully"));
     }
 
+    // ================= BULK GENERATE =================
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/generate")
     @Operation(
-            summary = "Generate Bulk Coupon Codes",
-            description = "Generate multiple unique coupon codes for a promotion. Supports bulk insert up to 10,000 codes with high performance and duplicate checking."
+            summary = "Generate Bulk Coupons",
+            description = "Generate multiple coupons (each coupon has 1 unique code)"
     )
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<GenerateCouponResponse> generateCoupons(
+    public ResponseEntity<ApiResponse<GenerateCouponResponse>> generateCoupons(
             @Valid @RequestBody GenerateCouponRequest request) {
-        try {
-            GenerateCouponResponse response = couponService.generateCoupons(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (IllegalArgumentException e) {
-            GenerateCouponResponse errorResponse = new GenerateCouponResponse();
-            errorResponse.setMessage("Invalid request: " + e.getMessage());
-            errorResponse.setSuccessCount(0);
-            errorResponse.setFailedCount(request.getQuantity());
-            return ResponseEntity.badRequest().body(errorResponse);
-        } catch (Exception e) {
-            GenerateCouponResponse errorResponse = new GenerateCouponResponse();
-            errorResponse.setMessage("Error generating coupons: " + e.getMessage());
-            errorResponse.setSuccessCount(0);
-            errorResponse.setFailedCount(request.getQuantity());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-        }
+
+        GenerateCouponResponse response = couponService.generateCoupons(request);
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(response, "Generate coupons successfully"));
     }
 
+    // ================= VALIDATE =================
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/validate/{code}")
     @Operation(
-            summary = "Validate Coupon Code",
-            description = "Check if a coupon code exists and is valid"
+            summary = "Check Coupon Exists",
+            description = "Check if coupon code exists in system"
     )
-    public ResponseEntity<Boolean> validateCoupon(
-            @Parameter(description = "Coupon code to validate", required = true)
+    public ResponseEntity<ApiResponse<Boolean>> validateCoupon(
             @PathVariable String code) {
+
         boolean isValid = couponService.validateCoupon(code);
-        return ResponseEntity.ok(isValid);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(isValid, "Validate coupon successfully")
+        );
     }
 
+    // ================= STATS =================
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/stats/{promotionId}")
     @Operation(
             summary = "Get Coupon Statistics",
-            description = "Retrieve total number of generated coupons for a specific promotion. " +
-                    "Note: Execution time and performance metrics are only available in the " +
-                    "response of the generate endpoint, not stored in database."
+            description = "Get total number of coupons for a promotion"
     )
-    public ResponseEntity<GenerateCouponResponse.GenerationStats> getStats(
-            @Parameter(description = "Promotion ID", required = true)
+    public ResponseEntity<ApiResponse<GenerateCouponResponse.GenerationStats>> getStats(
             @PathVariable Long promotionId) {
-        GenerateCouponResponse.GenerationStats stats = couponService.getGenerationStats(promotionId);
-        return ResponseEntity.ok(stats);
+
+        GenerateCouponResponse.GenerationStats stats =
+                couponService.getGenerationStats(promotionId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(stats, "Get stats successfully")
+        );
     }
 
+    // ================= UPDATE =================
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{id}")
+    @Operation(summary = "Update Coupon")
     public ResponseEntity<ApiResponse<CouponResponse>> updateCoupon(
             @PathVariable Long id,
             @RequestBody CouponRequest request) {
@@ -103,13 +117,20 @@ public class AdminCouponController {
         CouponResponse response = couponService.updateCoupon(id, request);
 
         return ResponseEntity.ok(
-                ApiResponse.success(response,"Cập nhật coupon thành công")
+                ApiResponse.success(response, "Update coupon successfully")
         );
     }
 
+    // ================= DELETE =================
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public void deleteCoupon(@PathVariable Long id) {
+    @Operation(summary = "Delete Coupon")
+    public ResponseEntity<ApiResponse<Void>> deleteCoupon(@PathVariable Long id) {
+
         couponService.deleteCoupon(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(null, "Delete coupon successfully")
+        );
     }
 }

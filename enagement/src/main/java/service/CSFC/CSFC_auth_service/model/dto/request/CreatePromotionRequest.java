@@ -3,6 +3,7 @@ package service.CSFC.CSFC_auth_service.model.dto.request;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import service.CSFC.CSFC_auth_service.model.constants.DiscountType;
 import service.CSFC.CSFC_auth_service.model.constants.PromotionStatus;
 
 import java.time.LocalDateTime;
@@ -18,7 +19,7 @@ public class CreatePromotionRequest {
 
     private String description;
     
-    private String discountType; // VD: PERCENT, FIXED
+    private DiscountType discountType; // VD: PERCENT, FIXED
 
     private PromotionStatus status;
 

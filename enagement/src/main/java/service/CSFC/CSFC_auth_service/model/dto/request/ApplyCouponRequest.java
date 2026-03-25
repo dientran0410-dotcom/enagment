@@ -4,11 +4,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 public class ApplyCouponRequest {
-    private long customerId;
+    private UUID customerId;
     private String couponCode;
     private Double orderAmount;
 

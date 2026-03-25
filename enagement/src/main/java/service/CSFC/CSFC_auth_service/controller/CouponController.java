@@ -6,15 +6,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import service.CSFC.CSFC_auth_service.model.dto.request.ApplyCouponRequest;
-import service.CSFC.CSFC_auth_service.model.dto.response.ApiResponse;
-import service.CSFC.CSFC_auth_service.model.dto.response.ApplyCouponResponse;
-import service.CSFC.CSFC_auth_service.model.dto.response.CouponCodeResponse;
-import service.CSFC.CSFC_auth_service.model.dto.response.CouponResponse;
+import service.CSFC.CSFC_auth_service.model.dto.request.CouponRequest;
+import service.CSFC.CSFC_auth_service.model.dto.request.GenerateCouponRequest;
+import service.CSFC.CSFC_auth_service.model.dto.response.*;
 import service.CSFC.CSFC_auth_service.model.entity.Coupon;
-import service.CSFC.CSFC_auth_service.service.CouponCodeGeneratorService;
 import service.CSFC.CSFC_auth_service.service.CouponService;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/engagement-service/coupons")
@@ -22,64 +21,55 @@ import java.util.List;
 public class CouponController {
 
     private final CouponService couponService;
-    private final CouponCodeGeneratorService couponCodeGeneratorService;
 
-
-    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
+    // ================= APPLY =================
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/apply")
-    public ApiResponse<ApplyCouponResponse> apply(@RequestBody ApplyCouponRequest req){
-        ApplyCouponResponse result = couponService.applyCoupon(
-                req.getCouponCode(),
-                req.getOrderAmount()
-        );
-        return ApiResponse.success(
-                result,
-                "Áp dụng phiếu giảm giá thành công"
-        );
-    }
+    public ResponseEntity<ApiResponse<ApplyCouponResponse>> apply(
+            @RequestBody ApplyCouponRequest request) {
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")
-    @GetMapping("/get-all")
-    public ResponseEntity<ApiResponse<List<Coupon>>> getAll()
-    {
+        ApplyCouponResponse result = couponService.applyCoupon(request);
 
         return ResponseEntity.ok(
-                ApiResponse.success(couponService.getAll(),"Get all coupon successfully")
+                ApiResponse.success(result, "Áp dụng coupon thành công")
         );
     }
 
-
+    // ================= QR =================
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
-    @PostMapping("/generate-qr")
-    public ResponseEntity<ApiResponse<CouponCodeResponse>> generateQr(
+    @GetMapping("/qr")
+    public ResponseEntity<ApiResponse<CouponQrResponse>> generateQr(
             @RequestParam String code) {
 
-        CouponCodeResponse result = couponService.generateQrForCoupon(code);
+        CouponQrResponse result = couponService.generateQrForCoupon(code);
 
         return ResponseEntity.ok(
-                ApiResponse.success(
-                        result,
-                        "Tạo QR (redeem URL) thành công"
-                )
+                ApiResponse.success(result, "Generate QR successfully")
         );
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
-    @GetMapping("/{code}")
-    public ResponseEntity<ApiResponse<CouponCodeResponse>> getCouponByCode(@PathVariable String code) {
-        CouponCodeResponse result = couponCodeGeneratorService.getCouponCode(code);
-        return  ResponseEntity.ok(
-                ApiResponse.success(result,"Coupon code successfully")
-        );
-    }
-
+    // ================= ACTIVE COUPON =================
     @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/active")
-    public ResponseEntity<ApiResponse<List<CouponResponse>>> getActiveCouponsForCustomer() {
+    public ResponseEntity<ApiResponse<List<CouponResponse>>> getActiveCoupons() {
+
         List<CouponResponse> coupons = couponService.getActiveCouponsForCustomer();
+
         return ResponseEntity.ok(
                 ApiResponse.success(coupons, "Active coupons retrieved successfully")
         );
     }
 
+    // ================= Checkout COUPON =================
+    @PostMapping("/checkout")
+    public ResponseEntity<ApiResponse<String>> checkout(
+            @RequestParam UUID customerId,
+            @RequestParam String couponCode) {
+
+        couponService.checkoutCoupon(customerId, couponCode);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("OK", "Thanh toán thành công, coupon đã được sử dụng")
+        );
+    }
 }

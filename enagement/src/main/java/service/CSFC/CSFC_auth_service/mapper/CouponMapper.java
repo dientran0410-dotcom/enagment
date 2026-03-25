@@ -25,6 +25,7 @@ public class CouponMapper {
                 .minTier(coupon.getMinTier())
                 .isPublic(coupon.getIsPublic())
                 .createdAt(coupon.getCreatedAt())
+                .startAt(coupon.getStartAt())
                 .expiredAt(coupon.getExpiredAt())
                 .build();
     }
@@ -45,7 +46,7 @@ public class CouponMapper {
             tier.setId(couponRequest.getMinTierId());
         }
         else {
-
+            throw new IllegalArgumentException("Tier ID must not be null");
         }
 
         return Coupon.builder()
@@ -59,6 +60,7 @@ public class CouponMapper {
                 .userLimit(couponRequest.getUserLimit())
                 .minTier(tier)
                 .isPublic(couponRequest.getIsPublic())
+                .createdAt(couponRequest.getStartAt())
                 .expiredAt(couponRequest.getExpiredAt())
                 .build();
 
@@ -77,6 +79,9 @@ public class CouponMapper {
         // Map expired field when provided in the request
         if (request.getExpiredAt() != null) {
             coupon.setExpiredAt(request.getExpiredAt());
+        }
+        if (request.getStartAt() != null) {
+            coupon.setStartAt(request.getStartAt());
         }
     }
 }

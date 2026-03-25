@@ -7,21 +7,21 @@ import org.springframework.transaction.annotation.Transactional;
 import service.CSFC.CSFC_auth_service.common.exception.coupon.CouponNotFoundException;
 import service.CSFC.CSFC_auth_service.common.exception.coupon.InvalidCouponException;
 import service.CSFC.CSFC_auth_service.mapper.CouponMapper;
-import service.CSFC.CSFC_auth_service.model.constants.CodeStatus;
 import service.CSFC.CSFC_auth_service.model.constants.PromotionStatus;
+import service.CSFC.CSFC_auth_service.model.constants.UsageStatus;
 import service.CSFC.CSFC_auth_service.model.dto.request.ApplyCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.CouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.GenerateCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.ApplyCouponResponse;
-import service.CSFC.CSFC_auth_service.model.dto.response.CouponCodeResponse;
+import service.CSFC.CSFC_auth_service.model.dto.response.CouponQrResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.CouponResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.GenerateCouponResponse;
 import service.CSFC.CSFC_auth_service.model.entity.Coupon;
-import service.CSFC.CSFC_auth_service.model.entity.CouponCode;
+import service.CSFC.CSFC_auth_service.model.entity.CouponUsage;
 import service.CSFC.CSFC_auth_service.model.entity.LoyaltyTier;
 import service.CSFC.CSFC_auth_service.model.entity.Promotion;
-import service.CSFC.CSFC_auth_service.repository.CouponCodeRepository;
 import service.CSFC.CSFC_auth_service.repository.CouponRepository;
+import service.CSFC.CSFC_auth_service.repository.CouponUsageRepository;
 import service.CSFC.CSFC_auth_service.repository.LoyaltyTierRepository;
 import service.CSFC.CSFC_auth_service.repository.PromotionRepository;
 import service.CSFC.CSFC_auth_service.service.CouponCodeGeneratorService;
@@ -48,33 +48,41 @@ public class CouponServiceImpl implements CouponService {
 
     private final QrCodeService qrCodeService;
 
-    private final CouponCodeRepository couponCodeRepository;
+    private final CouponUsageRepository couponUsageRepository;
+
+    String baseUrl = "https://api-gate-way.onrender.com";
+
 
     @Override
     @Transactional
     public GenerateCouponResponse generateCoupons(GenerateCouponRequest request) {
+
         long startTime = System.currentTimeMillis();
 
-        // Validate promotion exists
+        // 1. Validate promotion
         Promotion promotion = promotionRepository.findById(request.getPromotionId())
-                .orElseThrow(() -> new RuntimeException("Promotion not found with id: " + request.getPromotionId()));
+                .orElseThrow(() -> new RuntimeException(
+                        "Promotion not found with id: " + request.getPromotionId()));
 
-        // Get existing codes with same prefix to avoid duplicates
-        List<String> existingCodesList = couponRepository.findCodesStartingWith(request.getCodePrefix());
-        Set<String> existingCodes = new HashSet<>(existingCodesList);
-
-        // Generate unique codes
         boolean numericOnly = request.getUseNumericOnly() != null && request.getUseNumericOnly();
-        Set<String> generatedCodes = codeGeneratorService.generateUniqueCodes(
-                request.getQuantity(),
-                request.getCodeLength(),
-                request.getCodePrefix(),
-                numericOnly,
-                existingCodes);
 
-        // Create coupon entities
         List<Coupon> coupons = new ArrayList<>();
-        for (String code : generatedCodes) {
+        List<String> generatedCodes = new ArrayList<>();
+
+        // 2. Generate từng coupon (mỗi coupon = 1 code)
+        for (int i = 0; i < request.getQuantity(); i++) {
+
+            String code;
+
+            // 👉 đảm bảo unique code
+            do {
+                code = codeGeneratorService.generateCouponCode(
+                        request.getCodePrefix(),
+                        request.getCodeLength(),
+                        numericOnly
+                );
+            } while (couponRepository.existsByCode(code));
+
             Coupon coupon = new Coupon();
             coupon.setCode(code);
             coupon.setPromotion(promotion);
@@ -95,32 +103,35 @@ public class CouponServiceImpl implements CouponService {
             }
 
             coupons.add(coupon);
+            generatedCodes.add(code);
         }
 
-        // Bulk insert using saveAll (batch processing)
+        // 3. Save batch
         List<Coupon> savedCoupons = couponRepository.saveAll(coupons);
 
-        long endTime = System.currentTimeMillis();
-        long executionTime = endTime - startTime;
+        long executionTime = System.currentTimeMillis() - startTime;
 
-        // Build response
+        // 4. Build response
         GenerateCouponResponse response = new GenerateCouponResponse();
         response.setPromotionId(request.getPromotionId());
         response.setTotalGenerated(savedCoupons.size());
         response.setSuccessCount(savedCoupons.size());
         response.setFailedCount(0);
-        response.setGeneratedCodes(new ArrayList<>(generatedCodes));
+        response.setGeneratedCodes(generatedCodes);
         response.setExecutionTimeMs(executionTime);
         response.setGeneratedAt(LocalDateTime.now());
-        response.setMessage("Successfully generated " + savedCoupons.size() + " coupon codes");
+        response.setMessage("Successfully generated " + savedCoupons.size() + " coupons");
 
-        // Add statistics
+        // 5. Stats
         GenerateCouponResponse.GenerationStats stats = new GenerateCouponResponse.GenerationStats();
         stats.setTotalRequested(request.getQuantity());
         stats.setTotalGenerated(savedCoupons.size());
-        stats.setDuplicatesSkipped(request.getQuantity() - savedCoupons.size());
+        stats.setDuplicatesSkipped(0);
         stats.setExecutionTimeMs(executionTime);
-        stats.setCodesPerSecond(executionTime > 0 ? (savedCoupons.size() * 1000.0) / executionTime : 0);
+        stats.setCodesPerSecond(
+                executionTime > 0 ? (savedCoupons.size() * 1000.0) / executionTime : 0
+        );
+
         response.setStats(stats);
 
         return response;
@@ -185,67 +196,104 @@ public class CouponServiceImpl implements CouponService {
     }
 
     @Override
+    @Transactional
     public CouponResponse createCoupon(CouponRequest request) {
 
-        Coupon coupon = new Coupon();
-        coupon = couponMapper.toEntity(request);
+        // 1. Map entity
+        Coupon coupon = couponMapper.toEntity(request);
 
+        // 2. Set promotion
         if (request.getPromotionId() != null) {
             Promotion promotion = promotionRepository.findById(request.getPromotionId())
-                    .orElseThrow(() -> new RuntimeException("Promotion not found with id: " + request.getPromotionId()));
+                    .orElseThrow(() -> new RuntimeException(
+                            "Promotion not found with id: " + request.getPromotionId()));
             coupon.setPromotion(promotion);
         }
 
+        // 3. Set loyalty tier (optional)
         if (request.getMinTierId() != null) {
             LoyaltyTier tier = loyaltyTierRepository.findById(request.getMinTierId())
-                    .orElseThrow(() -> new RuntimeException("Tier not found with id: " + request.getMinTierId()));
+                    .orElseThrow(() -> new RuntimeException(
+                            "Tier not found with id: " + request.getMinTierId()));
             coupon.setMinTier(tier);
         }
 
-        coupon = couponRepository.save(coupon);
-
-        List<CouponCode> codes = new ArrayList<>();
-
-        for(int i = 0; i < request.getUsageLimit(); i++) {
-
-            String code = generateCode();
-
-            CouponCode couponCode = new CouponCode();
-            couponCode.setCode(code);
-            couponCode.setStatus(CodeStatus.AVAILABLE);
-            couponCode.setCoupon(coupon);
-
-            codes.add(couponCode);
+        if (request.getCode() == null || request.getCode().isBlank()) {
+            String generatedCode = codeGeneratorService.generateCouponCode("SALE-", 6, false);
+            coupon.setCode(generatedCode);
         }
-        couponCodeRepository.saveAll(codes);
 
-        return couponMapper.toResponse(coupon);
+        // 4. Init usedCount
+        coupon.setUsedCount(0);
+
+        // 5. Validate cơ bản (optional nhưng nên có)
+        if (coupon.getUsageLimit() == null || coupon.getUsageLimit() <= 0) {
+            throw new RuntimeException("usageLimit phải > 0");
+        }
+
+        if (coupon.getUserLimit() == null || coupon.getUserLimit() <= 0) {
+            coupon.setUserLimit(1); // default
+        }
+
+        // 6. Save
+        Coupon savedCoupon = couponRepository.save(coupon);
+
+        // 7. Return
+        return couponMapper.toResponse(savedCoupon);
     }
 
     @Override
     @Transactional
-    public ApplyCouponResponse applyCoupon(String code, double orderAmount) {
-        CouponCode couponCode = couponCodeRepository
-                .findByCode(code)
+    public ApplyCouponResponse applyCoupon(ApplyCouponRequest request) {
+
+        Coupon coupon = couponRepository.findByCode(request.getCouponCode())
                 .orElseThrow(CouponNotFoundException::new);
 
-        if (couponCode.getStatus() != CodeStatus.PENDING) {
-            throw new InvalidCouponException("QR không hợp lệ");
+        UUID customerId = request.getCustomerId();
+
+        // 1. Validate coupon
+        validateCoupon(coupon, request);
+
+        // 2. Check userLimit (đã USED)
+        long usedCount = couponUsageRepository
+                .countByCustomerIdAndCouponIdAndStatus(
+                        customerId,
+                        coupon.getId(),
+                        UsageStatus.USED
+                );
+
+        if (usedCount >= coupon.getUserLimit()) {
+            throw new InvalidCouponException("Bạn đã dùng hết lượt coupon này");
         }
 
-        Coupon coupon = couponCode.getCoupon();
+        // 3. Check PENDING (REUSE)
+        Optional<CouponUsage> pendingOpt =
+                couponUsageRepository.findByCustomerIdAndCouponIdAndStatus(
+                        customerId,
+                        coupon.getId(),
+                        UsageStatus.PENDING
+                );
 
-        // vẫn check hạn bằng Promotion
-        validateCoupon(coupon, new ApplyCouponRequest(code, orderAmount));
+        CouponUsage usage;
 
-        double discount = calculateDiscount(coupon, orderAmount);
-        double finalAmount = orderAmount - discount;
+        if (pendingOpt.isPresent()) {
+            usage = pendingOpt.get();
+        } else {
+            usage = new CouponUsage();
+            usage.setCustomerId(customerId);
+            usage.setCoupon(coupon);
+            usage.setStatus(UsageStatus.PENDING);
+            usage.setCreatedAt(LocalDateTime.now());
 
-        couponCode.setStatus(CodeStatus.USED);
-        couponCodeRepository.save(couponCode);
+            couponUsageRepository.save(usage);
+        }
+
+        // 4. Tính discount
+        double discount = calculateDiscount(coupon, request.getOrderAmount());
+        double finalAmount = request.getOrderAmount() - discount;
 
         return new ApplyCouponResponse(
-                orderAmount,
+                request.getOrderAmount(),
                 discount,
                 finalAmount
         );
@@ -306,59 +354,19 @@ public class CouponServiceImpl implements CouponService {
 
     @Override
     @Transactional
-    public CouponCodeResponse generateQrForCoupon(String code) {
+    public CouponQrResponse generateQrForCoupon(String code) {
 
-        CouponCode couponCode = couponCodeRepository
-                .findByCode(code)
+        Coupon coupon = couponRepository.findByCode(code)
                 .orElseThrow(CouponNotFoundException::new);
 
-        if (couponCode.getStatus() != CodeStatus.AVAILABLE) {
-            throw new InvalidCouponException("Mã không khả dụng");
-        }
+        String redeemUrl = baseUrl + "/api/coupons/apply?code=" + code;
 
-        Coupon coupon = couponCode.getCoupon();
-
-        if (coupon.getPromotion().getStatus() != PromotionStatus.ACTIVE) {
-            throw new InvalidCouponException("Coupon không hoạt động");
-        }
-
-
-        String redeemUrl =
-                "https://localhost:8085/api/coupons/redeem?code=" + code;
-
-
-        couponCode.setStatus(CodeStatus.PENDING);
-        couponCodeRepository.save(couponCode);
-
-
-        CouponCodeResponse response = new CouponCodeResponse();
-        response.setCode(code);
-        response.setRedeemUrl(redeemUrl);
-        response.setDiscountValue(coupon.getDiscountValue());
-
-        return response;
-    }
-
-    private CouponResponse mapToResponse(Coupon coupon) {
-
-        CouponResponse response = new CouponResponse();
-
-        response.setId(coupon.getId());
-        response.setPromotionId(coupon.getPromotion().getId());
-        response.setCode(coupon.getCode());
-        response.setDiscountType(coupon.getDiscountType());
-        response.setDiscountValue(coupon.getDiscountValue());
-        response.setMinOrderValue(coupon.getMinOrderValue());
-        response.setMaxDiscount(coupon.getMaxDiscount());
-        response.setUsageLimit(coupon.getUsageLimit());
-        response.setUserLimit(coupon.getUserLimit());
-        response.setUsedCount(coupon.getUsedCount());
-        response.setMinTier(coupon.getMinTier());
-        response.setIsPublic(coupon.getIsPublic());
-        response.setCreatedAt(coupon.getCreatedAt());
-        response.setExpiredAt(coupon.getExpiredAt());
-
-        return response;
+        return new CouponQrResponse(
+                coupon.getCode(),
+                redeemUrl,
+                coupon.getDiscountValue(),
+                coupon.getDiscountType()
+        );
     }
 
     private String generateCode() {
@@ -373,6 +381,67 @@ public class CouponServiceImpl implements CouponService {
         return coupons.stream()
                 .map(couponMapper::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void checkoutCoupon(UUID customerId, String couponCode) {
+
+        // 1. Tìm coupon
+        Coupon coupon = couponRepository.findByCode(couponCode)
+                .orElseThrow(CouponNotFoundException::new);
+
+        // 2. Tìm usage đang PENDING của user
+        CouponUsage usage = couponUsageRepository
+                .findByCustomerIdAndCouponIdAndStatus(
+                        customerId,
+                        coupon.getId(),
+                        UsageStatus.PENDING
+                )
+                .orElseThrow(() ->
+                        new InvalidCouponException("Không có coupon đang được áp dụng")
+                );
+
+        // 3. Double check usage limit (tránh race condition)
+        long usedCountByUser = couponUsageRepository
+                .countByCustomerIdAndCouponIdAndStatus(
+                        customerId,
+                        coupon.getId(),
+                        UsageStatus.USED
+                );
+
+        if (usedCountByUser >= coupon.getUserLimit()) {
+            throw new InvalidCouponException("Bạn đã dùng hết lượt coupon này");
+        }
+
+        // 4. Check usage global
+        if (coupon.getUsageLimit() != null &&
+                coupon.getUsedCount() >= coupon.getUsageLimit()) {
+            throw new InvalidCouponException("Coupon đã hết lượt sử dụng");
+        }
+
+        // 5. Update trạng thái
+        usage.setStatus(UsageStatus.USED);
+
+        // 6. Tăng số lần sử dụng global
+        coupon.setUsedCount(coupon.getUsedCount() + 1);
+    }
+
+    @Transactional
+    public void checkout(UUID customerId, Long couponId) {
+
+        CouponUsage usage = couponUsageRepository
+                .findByCustomerIdAndCouponIdAndStatus(
+                        customerId,
+                        couponId,
+                        UsageStatus.PENDING
+                )
+                .orElseThrow(() -> new RuntimeException("Không có coupon đang áp dụng"));
+
+        usage.setStatus(UsageStatus.USED);
+
+        Coupon coupon = usage.getCoupon();
+        coupon.setUsedCount(coupon.getUsedCount() + 1);
     }
 
 }

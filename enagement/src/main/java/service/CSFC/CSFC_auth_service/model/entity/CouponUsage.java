@@ -5,28 +5,30 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import service.CSFC.CSFC_auth_service.model.constants.CodeStatus;
+import service.CSFC.CSFC_auth_service.model.constants.UsageStatus;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
-@Table(name = "coupon_code")
 @Data
-@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class CouponCode {
+@Builder
+public class CouponUsage {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String code;
+    private UUID customerId;
 
-    @Enumerated(EnumType.STRING)
-    private CodeStatus status;
-
-    @Column(name = "redeem_url")
-    private String redeemUrl;
-
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "coupon_id")
     private Coupon coupon;
+
+    @Enumerated(EnumType.STRING)
+    private UsageStatus status; // PENDING, USED
+
+    private LocalDateTime createdAt;
 }

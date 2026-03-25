@@ -1,22 +1,20 @@
 package service.CSFC.CSFC_auth_service.service;
 
-
-
-
 import service.CSFC.CSFC_auth_service.model.dto.request.ApplyCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.CouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.GenerateCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.ApplyCouponResponse;
-import service.CSFC.CSFC_auth_service.model.dto.response.CouponCodeResponse;
+import service.CSFC.CSFC_auth_service.model.dto.response.CouponQrResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.CouponResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.GenerateCouponResponse;
 import service.CSFC.CSFC_auth_service.model.entity.Coupon;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface CouponService {
 
-    ApplyCouponResponse applyCoupon(String code, double orderAmount);
+    ApplyCouponResponse applyCoupon(ApplyCouponRequest request);
     /**
      * Generate bulk coupon codes for a promotion
      * High performance bulk insert with duplicate checking
@@ -33,10 +31,11 @@ public interface CouponService {
     void deleteCoupon(Long id);
     CouponResponse updateCoupon(Long id, CouponRequest coupon);
     CouponResponse createCoupon(CouponRequest request);
-    CouponCodeResponse generateQrForCoupon(String code);
+    CouponQrResponse generateQrForCoupon(String code);
 
 
     List<CouponResponse> getActiveCouponsForCustomer();
+    void checkoutCoupon(UUID customerId, String couponCode);
 }
 
 

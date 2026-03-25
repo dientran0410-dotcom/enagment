@@ -28,5 +28,6 @@ public class CouponResponse {
     private LoyaltyTier minTier;
     private Boolean isPublic;
     private LocalDateTime createdAt;
+    private LocalDateTime startAt;
     private LocalDateTime expiredAt;
 }

@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import service.CSFC.CSFC_auth_service.infrastructure.BaseEntity;
+import service.CSFC.CSFC_auth_service.model.constants.DiscountType;
 import service.CSFC.CSFC_auth_service.model.constants.PromotionStatus;
 
 import java.time.LocalDateTime;
@@ -37,7 +38,7 @@ public class Promotion extends BaseEntity {
     private LocalDateTime endDate;
 
     @Column(name = "discount_type")
-    private String discountType;
+    private DiscountType discountType;
 
     @OneToMany(mappedBy = "promotion", fetch = FetchType.LAZY)
     @JsonIgnore
