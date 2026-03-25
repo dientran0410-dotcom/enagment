@@ -8,6 +8,7 @@ import service.CSFC.CSFC_auth_service.common.exception.ResourceNotFoundException
 import service.CSFC.CSFC_auth_service.common.exception.coupon.CouponNotFoundException;
 import service.CSFC.CSFC_auth_service.common.exception.coupon.InvalidCouponException;
 import service.CSFC.CSFC_auth_service.mapper.CouponMapper;
+import service.CSFC.CSFC_auth_service.model.constants.DiscountType;
 import service.CSFC.CSFC_auth_service.model.constants.PromotionStatus;
 import service.CSFC.CSFC_auth_service.model.constants.UsageStatus;
 import service.CSFC.CSFC_auth_service.model.dto.request.ApplyCouponRequest;
@@ -248,7 +249,7 @@ public class CouponServiceImpl implements CouponService {
         UUID customerId = request.getCustomerId();
 
         // 1. Validate coupon
-        validateCoupon(coupon, request);
+        validateCouponForApply(coupon);
 
         // 2. Check userLimit (đã USED)
         long usedCount = couponUsageRepository
@@ -262,7 +263,7 @@ public class CouponServiceImpl implements CouponService {
             throw new InvalidCouponException("Bạn đã dùng hết lượt coupon này");
         }
 
-        // 3. Check PENDING (REUSE)
+        // 3. Check PENDING (REUSE nếu đã có)
         Optional<CouponUsage> pendingOpt =
                 couponUsageRepository.findByCustomerIdAndCouponIdAndStatus(
                         customerId,
@@ -280,30 +281,30 @@ public class CouponServiceImpl implements CouponService {
             usage.setCoupon(coupon);
             usage.setStatus(UsageStatus.PENDING);
             usage.setCreatedAt(LocalDateTime.now());
+            usage.setExpiredAt(LocalDateTime.now().plusDays(5)); // TTL cho PENDING
 
-            couponUsageRepository.save(usage);
+            usage = couponUsageRepository.save(usage);
         }
 
-        // 4. Tính discount
-        double discount = calculateDiscount(coupon, request.getOrderAmount());
-        double finalAmount = request.getOrderAmount() - discount;
+        // 4. Build response
+        ApplyCouponResponse response = new ApplyCouponResponse();
+        response.setCouponCode(usage.getCoupon().getCode());
+        response.setStatus(usage.getStatus());
+        response.setCreatedAt(usage.getCreatedAt());
+        response.setExpiredAt(usage.getExpiredAt());
 
-        return new ApplyCouponResponse(
-                request.getOrderAmount(),
-                discount,
-                finalAmount
-        );
+        return response;
     }
 
     private double calculateDiscount(Coupon coupon, double amount) {
 
         double discount = 0;
 
-        if ("FIXED_AMOUNT".equals(coupon.getDiscountType())) {
+        if (coupon.getDiscountType() == DiscountType.FIXED_AMOUNT) {
             discount = coupon.getDiscountValue();
         }
 
-        if ("PERCENTAGE".equals(coupon.getDiscountType())) {
+        if (coupon.getDiscountType() == DiscountType.PERCENT) {
 
             discount = amount * coupon.getDiscountValue() / 100;
 
@@ -315,13 +316,13 @@ public class CouponServiceImpl implements CouponService {
         return Math.min(discount, amount);
     }
 
-    private void validateCoupon(Coupon coupon,
-            ApplyCouponRequest req) {
+    private void validateCouponForApply(Coupon coupon) {
         LocalDateTime now = LocalDateTime.now();
         Promotion promotion = coupon.getPromotion();
 
         Integer usageLimit = coupon.getUsageLimit();
         int usedCount = coupon.getUsedCount() == null ? 0 : coupon.getUsedCount();
+
         if (usageLimit != null && (usageLimit == 0 || usedCount >= usageLimit)) {
             throw new InvalidCouponException("Mã giảm giá hết lượt dùng");
         }
@@ -334,17 +335,24 @@ public class CouponServiceImpl implements CouponService {
             throw new InvalidCouponException("Mã giảm giá chưa bắt đầu");
         }
 
-        double minOrderValue = coupon.getMinOrderValue() == null ? 0.0 : coupon.getMinOrderValue();
-        if (req.getOrderAmount() < minOrderValue) {
-            throw new InvalidCouponException("Tổng số tiền đơn hàng không đủ để áp dụng mã giảm giá");
-        }
-
         if (promotion.getStatus() != PromotionStatus.ACTIVE) {
             throw new InvalidCouponException("Hiện không có chương trình khuyến mãi này!");
         }
 
         if (!Boolean.TRUE.equals(coupon.getIsPublic())) {
             throw new InvalidCouponException("Bạn không có quyền sử dụng mã giảm giá này!");
+        }
+
+    }
+
+    private void validateCouponForCheckout(Coupon coupon, double orderAmount) {
+        // reuse basic
+        validateCouponForApply(coupon);
+
+        double minOrderValue = coupon.getMinOrderValue() == null ? 0.0 : coupon.getMinOrderValue();
+
+        if (orderAmount < minOrderValue) {
+            throw new InvalidCouponException("Tổng tiền không đủ để áp dụng mã giảm giá");
         }
     }
 
@@ -365,10 +373,6 @@ public class CouponServiceImpl implements CouponService {
         );
     }
 
-    private String generateCode() {
-        return UUID.randomUUID().toString().substring(0,8).toUpperCase();
-    }
-
     @Override
     @Transactional(readOnly = true)
     public List<CouponResponse> getActiveCouponsForCustomer() {
@@ -381,13 +385,15 @@ public class CouponServiceImpl implements CouponService {
 
     @Override
     @Transactional
-    public void checkoutCoupon(UUID customerId, String couponCode) {
+    public double checkoutCoupon(UUID customerId, String couponCode, Double orderAmount) {
+
+        LocalDateTime now = LocalDateTime.now();
 
         // 1. Tìm coupon
         Coupon coupon = couponRepository.findByCode(couponCode)
                 .orElseThrow(CouponNotFoundException::new);
 
-        // 2. Tìm usage đang PENDING của user
+        // 2. Tìm usage PENDING hợp lệ
         CouponUsage usage = couponUsageRepository
                 .findByCustomerIdAndCouponIdAndStatus(
                         customerId,
@@ -398,29 +404,44 @@ public class CouponServiceImpl implements CouponService {
                         new InvalidCouponException("Không có coupon đang được áp dụng")
                 );
 
-        // 3. Double check usage limit (tránh race condition)
-        long usedCountByUser = couponUsageRepository
-                .countByCustomerIdAndCouponIdAndStatus(
-                        customerId,
-                        coupon.getId(),
-                        UsageStatus.USED
-                );
-
-        if (usedCountByUser >= coupon.getUserLimit()) {
-            throw new InvalidCouponException("Bạn đã dùng hết lượt coupon này");
+        // 3. Check hết hạn giữ
+        if (usage.getExpiredAt() == null || usage.getExpiredAt().isBefore(now)) {
+            throw new InvalidCouponException("Coupon đã hết thời gian giữ, vui lòng apply lại");
         }
 
-        // 4. Check usage global
-        if (coupon.getUsageLimit() != null &&
-                coupon.getUsedCount() >= coupon.getUsageLimit()) {
+        // 4. Check user limit
+        if (coupon.getUserLimit() != null) {
+            long usedCountByUser = couponUsageRepository
+                    .countByCustomerIdAndCouponIdAndStatus(
+                            customerId,
+                            coupon.getId(),
+                            UsageStatus.USED
+                    );
+
+            if (usedCountByUser >= coupon.getUserLimit()) {
+                throw new InvalidCouponException("Bạn đã dùng hết lượt coupon này");
+            }
+        }
+
+        // 5. Validate full
+        validateCouponForCheckout(coupon, orderAmount);
+
+        // 6. Tính discount (backend quyết định)
+        double discount = calculateDiscount(coupon, orderAmount);
+
+        //Atomic update usage global
+        int updated = couponRepository.incrementUsageIfAvailable(coupon.getId());
+
+        if (updated == 0) {
             throw new InvalidCouponException("Coupon đã hết lượt sử dụng");
         }
 
-        // 5. Update trạng thái
+        // 8. Update usage -> USED
         usage.setStatus(UsageStatus.USED);
+        usage.setUsedAt(now);
+        couponUsageRepository.save(usage);
 
-        // 6. Tăng số lần sử dụng global
-        coupon.setUsedCount(coupon.getUsedCount() + 1);
+        return orderAmount - discount;
     }
 
     @Override

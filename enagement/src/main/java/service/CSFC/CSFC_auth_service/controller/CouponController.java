@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import service.CSFC.CSFC_auth_service.model.dto.request.ApplyCouponRequest;
+import service.CSFC.CSFC_auth_service.model.dto.request.CheckoutCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.*;
 import service.CSFC.CSFC_auth_service.service.CouponService;
 
@@ -25,10 +26,10 @@ public class CouponController {
     public ResponseEntity<ApiResponse<ApplyCouponResponse>> apply(
             @RequestBody ApplyCouponRequest request) {
 
-        ApplyCouponResponse result = couponService.applyCoupon(request);
+        ApplyCouponResponse response = couponService.applyCoupon(request);
 
         return ResponseEntity.ok(
-                ApiResponse.success(result, "Áp dụng coupon thành công")
+                ApiResponse.success(response, "Áp dụng coupon thành công")
         );
     }
 
@@ -58,18 +59,23 @@ public class CouponController {
     }
 
     // ================= Checkout COUPON =================
+    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/checkout")
-    public ResponseEntity<ApiResponse<String>> checkout(
-            @RequestParam UUID customerId,
-            @RequestParam String couponCode) {
+    public ResponseEntity<ApiResponse<Double>> checkout(
+            @RequestBody CheckoutCouponRequest request) {
 
-        couponService.checkoutCoupon(customerId, couponCode);
+        double finalAmount = couponService.checkoutCoupon(
+                request.getCustomerId(),
+                request.getCouponCode(),
+                request.getOrderAmount()
+        );
 
         return ResponseEntity.ok(
-                ApiResponse.success("OK", "Thanh toán thành công, coupon đã được sử dụng")
+                ApiResponse.success(finalAmount, "Thanh toán thành công, coupon đã được sử dụng")
         );
     }
 
+    @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/my-applied/{customerId}")
     public ResponseEntity<ApiResponse<List<CouponUsageResponse>>> getByCustomerId(
             @PathVariable UUID customerId) {

@@ -31,4 +31,6 @@ public class CouponUsage {
     private UsageStatus status; // PENDING, USED
 
     private LocalDateTime createdAt;
+    private LocalDateTime expiredAt;
+    private LocalDateTime usedAt;
 }

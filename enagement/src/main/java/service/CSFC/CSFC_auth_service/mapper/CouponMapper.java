@@ -2,6 +2,7 @@ package service.CSFC.CSFC_auth_service.mapper;
 
 import org.springframework.stereotype.Component;
 import service.CSFC.CSFC_auth_service.model.dto.request.CouponRequest;
+import service.CSFC.CSFC_auth_service.model.dto.response.ApplyCouponResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.CouponResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.CouponUsageResponse;
 import service.CSFC.CSFC_auth_service.model.entity.Coupon;
@@ -97,8 +98,9 @@ public class CouponMapper {
                 .couponCode(coupon.getCode())
                 .discountType(coupon.getDiscountType())
                 .discountValue(coupon.getDiscountValue())
-                .status(usage.getStatus().name())
+                .status(usage.getStatus())
                 .createdAt(usage.getCreatedAt())
+                .expiredAt(usage.getExpiredAt())
                 .build();
     }
 }
