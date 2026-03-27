@@ -75,7 +75,7 @@ eureka:
 
 services:
   product-service:
-    url: ${PRODUCT_SERVICE_URL}
+    url: https://productservice-1nk8.onrender.com
 
 springdoc:
   api-docs:
