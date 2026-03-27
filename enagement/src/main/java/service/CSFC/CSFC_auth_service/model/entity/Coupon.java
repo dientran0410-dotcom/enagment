@@ -7,6 +7,7 @@ import lombok.experimental.SuperBuilder;
 import service.CSFC.CSFC_auth_service.infrastructure.BaseEntity;
 import service.CSFC.CSFC_auth_service.model.constants.DiscountType;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -29,14 +30,14 @@ public class Coupon extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private DiscountType discountType; // PERCENT, FIXED_AMOUNT
 
-    @Column(name = "discount_value", nullable = false)
-    private Double discountValue;
+    @Column(name = "discount_value", nullable = false, precision = 19, scale = 4)
+    private BigDecimal discountValue;
 
-    @Column(name = "min_order_value")
-    private Double minOrderValue = 0.0;
+    @Column(name = "min_order_value", precision = 19, scale = 4)
+    private BigDecimal minOrderValue = BigDecimal.ZERO;
 
-    @Column(name = "max_discount")
-    private Double maxDiscount;
+    @Column(name = "max_discount", precision = 19, scale = 4)
+    private BigDecimal maxDiscount;
 
     @Column(name = "usage_limit", nullable = false)
     private Integer usageLimit = 1; // Tổng số lần dùng toàn hệ thống

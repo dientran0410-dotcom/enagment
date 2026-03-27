@@ -3,10 +3,12 @@ package service.CSFC.CSFC_auth_service.service;
 import service.CSFC.CSFC_auth_service.model.dto.request.ApplyCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.CouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.GenerateCouponRequest;
+import service.CSFC.CSFC_auth_service.model.dto.request.OrderCreateRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.*;
 import service.CSFC.CSFC_auth_service.model.entity.Coupon;
 import service.CSFC.CSFC_auth_service.model.entity.CouponUsage;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,7 +35,7 @@ public interface CouponService {
 
 
     List<CouponResponse> getActiveCouponsForCustomer();
-    double checkoutCoupon(UUID customerId, String couponCode, Double orderValue);
+    BigDecimal checkoutCoupon(UUID customerId, String couponCode, OrderCreateRequest orderCreateRequest);
     List<CouponUsageResponse> getCustomerCouponUsage(UUID customerId);
 }
 

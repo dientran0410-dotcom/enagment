@@ -4,16 +4,14 @@ package service.CSFC.CSFC_auth_service.service.imp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import service.CSFC.CSFC_auth_service.common.exception.ResourceNotFoundException;
+import service.CSFC.CSFC_auth_service.common.client.ProductClient;
 import service.CSFC.CSFC_auth_service.common.exception.coupon.CouponNotFoundException;
 import service.CSFC.CSFC_auth_service.common.exception.coupon.InvalidCouponException;
 import service.CSFC.CSFC_auth_service.mapper.CouponMapper;
 import service.CSFC.CSFC_auth_service.model.constants.DiscountType;
 import service.CSFC.CSFC_auth_service.model.constants.PromotionStatus;
 import service.CSFC.CSFC_auth_service.model.constants.UsageStatus;
-import service.CSFC.CSFC_auth_service.model.dto.request.ApplyCouponRequest;
-import service.CSFC.CSFC_auth_service.model.dto.request.CouponRequest;
-import service.CSFC.CSFC_auth_service.model.dto.request.GenerateCouponRequest;
+import service.CSFC.CSFC_auth_service.model.dto.request.*;
 import service.CSFC.CSFC_auth_service.model.dto.response.*;
 import service.CSFC.CSFC_auth_service.model.entity.Coupon;
 import service.CSFC.CSFC_auth_service.model.entity.CouponUsage;
@@ -25,8 +23,8 @@ import service.CSFC.CSFC_auth_service.repository.LoyaltyTierRepository;
 import service.CSFC.CSFC_auth_service.repository.PromotionRepository;
 import service.CSFC.CSFC_auth_service.service.CouponCodeGeneratorService;
 import service.CSFC.CSFC_auth_service.service.CouponService;
-import service.CSFC.CSFC_auth_service.service.QrCodeService;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -46,6 +44,8 @@ public class CouponServiceImpl implements CouponService {
     private final CouponMapper couponMapper;
 
     private final CouponUsageRepository couponUsageRepository;
+
+    private final ProductClient productClient;
 
     String baseUrl = "https://api-gate-way.onrender.com";
 
@@ -88,7 +88,7 @@ public class CouponServiceImpl implements CouponService {
             coupon.setUsedCount(0);
             coupon.setDiscountType(request.getDiscountType());
             coupon.setDiscountValue(request.getDiscountValue());
-            coupon.setMinOrderValue(request.getMinOrderValue() != null ? request.getMinOrderValue() : 0.0);
+            coupon.setMinOrderValue(request.getMinOrderValue() != null ? request.getMinOrderValue() : BigDecimal.ZERO);
             coupon.setMaxDiscount(request.getMaxDiscount());
             coupon.setIsPublic(request.getIsPublic() != null ? request.getIsPublic() : true);
 
@@ -296,24 +296,32 @@ public class CouponServiceImpl implements CouponService {
         return response;
     }
 
-    private double calculateDiscount(Coupon coupon, double amount) {
+    private BigDecimal calculateDiscount(Coupon coupon, BigDecimal totalAmount) {
 
-        double discount = 0;
+        BigDecimal discount = BigDecimal.ZERO;
 
+        // FIXED AMOUNT
         if (coupon.getDiscountType() == DiscountType.FIXED_AMOUNT) {
             discount = coupon.getDiscountValue();
         }
 
+        // PERCENT
         if (coupon.getDiscountType() == DiscountType.PERCENT) {
 
-            discount = amount * coupon.getDiscountValue() / 100;
+            BigDecimal percent = coupon.getDiscountValue();
 
-            if (coupon.getMaxDiscount() != null && coupon.getMaxDiscount() > 0) {
-                discount = Math.min(discount, coupon.getMaxDiscount());
+            discount = totalAmount
+                    .multiply(percent)
+                    .divide(BigDecimal.valueOf(100));
+
+            // áp maxDiscount nếu có
+            if (coupon.getMaxDiscount() != null && coupon.getMaxDiscount().compareTo(BigDecimal.ZERO) > 0) {
+                discount = discount.min(coupon.getMaxDiscount());
             }
         }
 
-        return Math.min(discount, amount);
+        // không cho giảm vượt quá tổng tiền
+        return discount.min(totalAmount);
     }
 
     private void validateCouponForApply(Coupon coupon) {
@@ -345,13 +353,13 @@ public class CouponServiceImpl implements CouponService {
 
     }
 
-    private void validateCouponForCheckout(Coupon coupon, double orderAmount) {
-        // reuse basic
+    private void validateCouponForCheckout(Coupon coupon, BigDecimal orderAmount) {
+
         validateCouponForApply(coupon);
 
-        double minOrderValue = coupon.getMinOrderValue() == null ? 0.0 : coupon.getMinOrderValue();
+        BigDecimal minOrderValue = coupon.getMinOrderValue() == null ? BigDecimal.ZERO : coupon.getMinOrderValue();
 
-        if (orderAmount < minOrderValue) {
+        if (orderAmount.compareTo(minOrderValue) < 0) {
             throw new InvalidCouponException("Tổng tiền không đủ để áp dụng mã giảm giá");
         }
     }
@@ -383,17 +391,21 @@ public class CouponServiceImpl implements CouponService {
                 .collect(Collectors.toList());
     }
 
-    @Override
     @Transactional
-    public double checkoutCoupon(UUID customerId, String couponCode, Double orderAmount) {
+    public BigDecimal checkoutCoupon(UUID customerId,
+                                     String couponCode,
+                                     OrderCreateRequest orderRequest) {
 
         LocalDateTime now = LocalDateTime.now();
 
-        // 1. Tìm coupon
+        // 1. Tự tính total giống Order Service
+        BigDecimal totalAmount = calculateTotalAmount(orderRequest);
+
+        // 2. Tìm coupon
         Coupon coupon = couponRepository.findByCode(couponCode)
                 .orElseThrow(CouponNotFoundException::new);
 
-        // 2. Tìm usage PENDING hợp lệ
+        // 3. Tìm usage PENDING
         CouponUsage usage = couponUsageRepository
                 .findByCustomerIdAndCouponIdAndStatus(
                         customerId,
@@ -404,34 +416,19 @@ public class CouponServiceImpl implements CouponService {
                         new InvalidCouponException("Không có coupon đang được áp dụng")
                 );
 
-        // 3. Check hết hạn giữ
+        // 4. Check hết hạn giữ
         if (usage.getExpiredAt() == null || usage.getExpiredAt().isBefore(now)) {
             throw new InvalidCouponException("Coupon đã hết thời gian giữ, vui lòng apply lại");
         }
 
-        // 4. Check user limit
-        if (coupon.getUserLimit() != null) {
-            long usedCountByUser = couponUsageRepository
-                    .countByCustomerIdAndCouponIdAndStatus(
-                            customerId,
-                            coupon.getId(),
-                            UsageStatus.USED
-                    );
+        // 5. Validate full với totalAmount thật
+        validateCouponForCheckout(coupon, totalAmount);
 
-            if (usedCountByUser >= coupon.getUserLimit()) {
-                throw new InvalidCouponException("Bạn đã dùng hết lượt coupon này");
-            }
-        }
+        // 6. Tính discount
+        BigDecimal discount = calculateDiscount(coupon, totalAmount);
 
-        // 5. Validate full
-        validateCouponForCheckout(coupon, orderAmount);
-
-        // 6. Tính discount (backend quyết định)
-        double discount = calculateDiscount(coupon, orderAmount);
-
-        //Atomic update usage global
+        // 7. Atomic update usage global
         int updated = couponRepository.incrementUsageIfAvailable(coupon.getId());
-
         if (updated == 0) {
             throw new InvalidCouponException("Coupon đã hết lượt sử dụng");
         }
@@ -441,7 +438,8 @@ public class CouponServiceImpl implements CouponService {
         usage.setUsedAt(now);
         couponUsageRepository.save(usage);
 
-        return orderAmount - discount;
+        // 9. Trả về FINAL AMOUNT cho Order Service
+        return totalAmount.subtract(discount);
     }
 
     @Override
@@ -454,5 +452,66 @@ public class CouponServiceImpl implements CouponService {
                 .map(couponMapper::mapToResponse)
                 .toList();
     }
+
+    private Set<UUID> collectAllVariantIds(OrderCreateRequest request) {
+        Set<UUID> ids = new HashSet<>();
+
+        request.getItems().forEach(item -> {
+            ids.add(item.getVariantId());
+
+            if (item.getAddons() != null) {
+                item.getAddons()
+                        .forEach(addon -> ids.add(addon.getAddonVariantId()));
+            }
+        });
+
+        return ids;
+    }
+    private BigDecimal calculateTotalAmount(OrderCreateRequest request) {
+
+        Set<UUID> ids = collectAllVariantIds(request);
+
+        List<ProductVariantDto> variants =
+                productClient.getVariantsByIds(new ArrayList<>(ids));
+
+        Map<UUID, ProductVariantDto> productMap =
+                variants.stream()
+                        .collect(Collectors.toMap(ProductVariantDto::getId, v -> v));
+
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (OrderItemRequest item : request.getItems()) {
+
+            ProductVariantDto variant =
+                    productMap.get(item.getVariantId());
+
+            BigDecimal qty = BigDecimal.valueOf(item.getQuantity());
+            BigDecimal itemSubtotal =
+                    variant.getPrice().multiply(qty);
+
+            if (item.getAddons() != null) {
+                for (OrderItemAddonRequest addon : item.getAddons()) {
+
+                    ProductVariantDto addonInfo =
+                            productMap.get(addon.getAddonVariantId());
+
+                    BigDecimal addonSubtotal =
+                            addonInfo.getPrice()
+                                    .multiply(BigDecimal.valueOf(addon.getQuantity()))
+                                    .multiply(qty);
+
+                    itemSubtotal = itemSubtotal.add(addonSubtotal);
+                }
+            }
+
+            total = total.add(itemSubtotal);
+        }
+
+        return total;
+    }
+
+
+
+
 
 }

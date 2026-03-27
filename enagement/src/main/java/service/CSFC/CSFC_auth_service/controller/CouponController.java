@@ -10,6 +10,7 @@ import service.CSFC.CSFC_auth_service.model.dto.request.CheckoutCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.*;
 import service.CSFC.CSFC_auth_service.service.CouponService;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -61,17 +62,18 @@ public class CouponController {
     // ================= Checkout COUPON =================
     @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping("/checkout")
-    public ResponseEntity<ApiResponse<Double>> checkout(
+    public ResponseEntity<ApiResponse<BigDecimal>> checkout(
             @RequestBody CheckoutCouponRequest request) {
 
-        double finalAmount = couponService.checkoutCoupon(
+        BigDecimal finalAmount = couponService.checkoutCoupon(
                 request.getCustomerId(),
                 request.getCouponCode(),
-                request.getOrderAmount()
+                request.getOrderCreateRequest()
         );
 
         return ResponseEntity.ok(
-                ApiResponse.success(finalAmount, "Thanh toán thành công, coupon đã được sử dụng")
+                ApiResponse.success(finalAmount,
+                        "Thanh toán thành công, coupon đã được sử dụng")
         );
     }
 

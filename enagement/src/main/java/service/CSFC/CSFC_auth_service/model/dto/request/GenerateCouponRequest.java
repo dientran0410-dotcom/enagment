@@ -4,6 +4,7 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 import service.CSFC.CSFC_auth_service.model.constants.DiscountType;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -49,12 +50,12 @@ public class GenerateCouponRequest {
 
     @NotNull(message = "Discount value is required")
     @Min(value = 0, message = "Discount value must be positive")
-    private Double discountValue;
+    private BigDecimal discountValue;
 
     @Min(value = 0, message = "Min order value cannot be negative")
-    private Double minOrderValue = 0.0;
+    private BigDecimal minOrderValue;
 
-    private Double maxDiscount;
+    private BigDecimal maxDiscount;
 
     @Min(value = 1, message = "User limit must be at least 1")
     private Integer userLimit = 1;

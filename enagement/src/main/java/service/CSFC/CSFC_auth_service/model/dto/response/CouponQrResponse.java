@@ -4,12 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import service.CSFC.CSFC_auth_service.model.constants.DiscountType;
 
+import java.math.BigDecimal;
+
 @Data
 @AllArgsConstructor
 public class CouponQrResponse {
 
     private String code;
     private String redeemUrl;
-    private Double discountValue;
+    private BigDecimal discountValue;
     private DiscountType discountType;
 }

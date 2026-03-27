@@ -14,5 +14,5 @@ import java.util.UUID;
 public class CheckoutCouponRequest {
     private UUID customerId;
     private String couponCode;
-    private Double orderAmount;
+    private OrderCreateRequest orderCreateRequest;
 }

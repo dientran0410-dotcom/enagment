@@ -3,6 +3,7 @@ package service.CSFC.CSFC_auth_service.model.dto.request;
 import lombok.*;
 import service.CSFC.CSFC_auth_service.model.constants.DiscountType;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Getter
@@ -18,11 +19,11 @@ public class CouponRequest {
 
     private DiscountType discountType;
 
-    private Double discountValue;
+    private BigDecimal discountValue;
 
-    private Double minOrderValue;
+    private BigDecimal minOrderValue;
 
-    private Double maxDiscount;
+    private BigDecimal maxDiscount;
 
     private Integer usageLimit;
 

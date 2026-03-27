@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import service.CSFC.CSFC_auth_service.model.constants.DiscountType;
 import service.CSFC.CSFC_auth_service.model.constants.UsageStatus;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -22,7 +23,7 @@ public class CouponUsageResponse {
     private Long couponId;
     private String couponCode;
     private DiscountType discountType;
-    private Double discountValue;
+    private BigDecimal discountValue;
     private UsageStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime expiredAt;
