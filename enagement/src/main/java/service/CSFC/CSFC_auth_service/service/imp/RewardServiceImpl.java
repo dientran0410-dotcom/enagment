@@ -8,11 +8,13 @@ import service.CSFC.CSFC_auth_service.mapper.RewardMapper;
 import service.CSFC.CSFC_auth_service.model.dto.request.RewardRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.RewardResponse;
 import service.CSFC.CSFC_auth_service.model.entity.Reward;
+import service.CSFC.CSFC_auth_service.repository.CustomerFranchiseRepository;
 import service.CSFC.CSFC_auth_service.repository.RewardRepository;
 import service.CSFC.CSFC_auth_service.service.FileStorageService;
 import service.CSFC.CSFC_auth_service.service.RewardService;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +26,8 @@ public class RewardServiceImpl implements RewardService {
 
     private final RewardMapper rewardMapper;
 
+    private final CustomerFranchiseRepository customerFranchiseRepository;
+
     @Override
     public List<RewardResponse> getAllReward() {
         List<Reward> rewards = rewardRepository.findAll();
@@ -34,9 +38,19 @@ public class RewardServiceImpl implements RewardService {
     }
 
     @Override
-    public List<RewardResponse> getActiveRewards() {
-        List<Reward> rewards = rewardRepository.findByIsActiveTrue();
+    public List<RewardResponse> getActiveRewards(UUID customerId) {
 
+        // 1. Lấy franchiseId từ bảng customer_franchise
+        UUID franchiseId = customerFranchiseRepository
+                .findByCustomerId(customerId)
+                .orElseThrow(() -> new RuntimeException("Customer chưa thuộc franchise"))
+                .getFranchiseId();
+
+        // 2. Lấy reward đúng franchise
+        List<Reward> rewards = rewardRepository
+                .findByFranchiseIdAndIsActiveTrue(franchiseId);
+
+        // 3. Map ra response
         return rewards.stream()
                 .map(rewardMapper::toResponse)
                 .toList();

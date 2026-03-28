@@ -5,13 +5,17 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import service.CSFC.CSFC_auth_service.common.config.securitymodel.UserPrincipal;
 import service.CSFC.CSFC_auth_service.model.dto.request.RewardRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.ApiResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.RewardResponse;
 import service.CSFC.CSFC_auth_service.service.RewardService;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/engagement-service/admin/rewards")
@@ -19,6 +23,7 @@ import java.util.List;
 public class AdminRewardController {
 
     private final RewardService rewardService;
+
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<ApiResponse<RewardResponse>> createReward(@Valid @ModelAttribute RewardRequest request) {
@@ -67,8 +72,17 @@ public class AdminRewardController {
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
     @GetMapping("/active")
-    public List<RewardResponse> getActiveRewards() {
-        return rewardService.getActiveRewards();
+    public List<RewardResponse> getActiveRewards(Authentication authentication) {
+
+        UsernamePasswordAuthenticationToken auth =
+                (UsernamePasswordAuthenticationToken) authentication;
+
+        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+
+        assert principal != null;
+        UUID customerId = UUID.fromString(principal.getUserId());
+
+        return rewardService.getActiveRewards(customerId);
     }
 
     @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF')")

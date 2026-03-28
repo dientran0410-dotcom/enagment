@@ -7,10 +7,11 @@ import service.CSFC.CSFC_auth_service.model.dto.response.RewardResponse;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface RewardService {
     List<RewardResponse> getAllReward();
-    List<RewardResponse> getActiveRewards();
+    List<RewardResponse> getActiveRewards(UUID customerId);
     RewardResponse createReward(RewardRequest request, MultipartFile file);
     RewardResponse updateReward(Long rewardId, RewardRequest request, MultipartFile file);
     void deleteReward(Long rewardId);
