@@ -17,10 +17,7 @@ import service.CSFC.CSFC_auth_service.model.entity.Coupon;
 import service.CSFC.CSFC_auth_service.model.entity.CouponUsage;
 import service.CSFC.CSFC_auth_service.model.entity.LoyaltyTier;
 import service.CSFC.CSFC_auth_service.model.entity.Promotion;
-import service.CSFC.CSFC_auth_service.repository.CouponRepository;
-import service.CSFC.CSFC_auth_service.repository.CouponUsageRepository;
-import service.CSFC.CSFC_auth_service.repository.LoyaltyTierRepository;
-import service.CSFC.CSFC_auth_service.repository.PromotionRepository;
+import service.CSFC.CSFC_auth_service.repository.*;
 import service.CSFC.CSFC_auth_service.service.CouponCodeGeneratorService;
 import service.CSFC.CSFC_auth_service.service.CouponService;
 
@@ -47,6 +44,7 @@ public class CouponServiceImpl implements CouponService {
 
     private final ProductClient productClient;
 
+    private final CustomerFranchiseRepository customerFranchiseRepository;
     String baseUrl = "https://api-gate-way.onrender.com";
 
 
@@ -383,12 +381,24 @@ public class CouponServiceImpl implements CouponService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CouponResponse> getActiveCouponsForCustomer() {
+    public List<CouponResponse> getActiveCouponsForCustomer(UUID customerId) {
+
+        // 1. Lấy franchiseId từ bảng customer_franchise (giống Reward)
+        UUID franchiseId = customerFranchiseRepository
+                .findByCustomerId(customerId)
+                .orElseThrow(() -> new RuntimeException("Customer chưa thuộc franchise"))
+                .getFranchiseId();
+
+        // 2. Lấy coupon đúng franchise + còn hạn + active
         LocalDateTime now = LocalDateTime.now();
-        List<Coupon> coupons = couponRepository.findActiveCouponsForCustomer(now);
+
+        List<Coupon> coupons = couponRepository
+                .findActiveByFranchise(franchiseId, now);
+
+        // 3. Map ra response
         return coupons.stream()
                 .map(couponMapper::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional

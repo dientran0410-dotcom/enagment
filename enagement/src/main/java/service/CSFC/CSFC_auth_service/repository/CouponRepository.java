@@ -56,4 +56,17 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
     WHERE c.id = :id AND c.usedCount < c.usageLimit
 """)
     int incrementUsageIfAvailable(@Param("id") Long id);
+
+    @Query("""
+    SELECT c FROM Coupon c
+    JOIN c.promotion p
+    WHERE p.franchiseId = :franchiseId
+      AND c.startAt <= :now
+      AND c.expiredAt >= :now
+      AND c.isPublic = true
+""")
+    List<Coupon> findActiveByFranchise(
+            @Param("franchiseId") UUID franchiseId,
+            @Param("now") LocalDateTime now
+    );
 }

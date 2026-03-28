@@ -34,7 +34,7 @@ public interface CouponService {
     CouponQrResponse generateQrForCoupon(String code);
 
 
-    List<CouponResponse> getActiveCouponsForCustomer();
+    List<CouponResponse> getActiveCouponsForCustomer(UUID customerId);
     BigDecimal checkoutCoupon(UUID customerId, String couponCode, OrderCreateRequest orderCreateRequest);
     List<CouponUsageResponse> getCustomerCouponUsage(UUID customerId);
 }

@@ -4,7 +4,11 @@ package service.CSFC.CSFC_auth_service.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import service.CSFC.CSFC_auth_service.common.config.securitymodel.UserPrincipal;
 import service.CSFC.CSFC_auth_service.model.dto.request.ApplyCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.CheckoutCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.*;
@@ -50,9 +54,18 @@ public class CouponController {
     // ================= ACTIVE COUPON =================
     @PreAuthorize("hasRole('CUSTOMER')")
     @GetMapping("/active")
-    public ResponseEntity<ApiResponse<List<CouponResponse>>> getActiveCoupons() {
+    public ResponseEntity<ApiResponse<List<CouponResponse>>> getActiveCoupons(Authentication authentication) {
 
-        List<CouponResponse> coupons = couponService.getActiveCouponsForCustomer();
+        UsernamePasswordAuthenticationToken auth =
+                (UsernamePasswordAuthenticationToken) authentication;
+
+        UserPrincipal principal = (UserPrincipal) auth.getPrincipal();
+
+        assert principal != null;
+        UUID customerId = UUID.fromString(principal.getUserId());
+
+        List<CouponResponse> coupons =
+                couponService.getActiveCouponsForCustomer(customerId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(coupons, "Active coupons retrieved successfully")
