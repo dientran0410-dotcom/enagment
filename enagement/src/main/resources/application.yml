@@ -52,7 +52,7 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: ${EUREKA_SERVER_URL:https://microservice-i7nc.onrender.com/eureka/}
+      defaultZone: ${EUREKA_SERVER_URL:https://eureka-dvkf.onrender.com/eureka/}
     fetch-registry: true
     register-with-eureka: true
     healthcheck:
