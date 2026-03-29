@@ -393,7 +393,7 @@ public class CouponServiceImpl implements CouponService {
         LocalDateTime now = LocalDateTime.now();
 
         List<Coupon> coupons = couponRepository
-                .findActiveByFranchise(franchiseId, now);
+                .findActiveCouponsForCustomer(now, PromotionStatus.ACTIVE);
 
         // 3. Map ra response
         return coupons.stream()

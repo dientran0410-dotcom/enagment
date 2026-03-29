@@ -9,10 +9,13 @@ import service.CSFC.CSFC_auth_service.model.dto.request.RewardRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.RewardResponse;
 import service.CSFC.CSFC_auth_service.model.entity.Reward;
 import service.CSFC.CSFC_auth_service.repository.CustomerFranchiseRepository;
+import service.CSFC.CSFC_auth_service.repository.PromotionRepository;
 import service.CSFC.CSFC_auth_service.repository.RewardRepository;
 import service.CSFC.CSFC_auth_service.service.FileStorageService;
 import service.CSFC.CSFC_auth_service.service.RewardService;
+import service.CSFC.CSFC_auth_service.model.constants.PromotionStatus;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,6 +30,8 @@ public class RewardServiceImpl implements RewardService {
     private final RewardMapper rewardMapper;
 
     private final CustomerFranchiseRepository customerFranchiseRepository;
+
+    private final PromotionRepository promotionRepository;
 
     @Override
     public List<RewardResponse> getAllReward() {
@@ -45,6 +50,13 @@ public class RewardServiceImpl implements RewardService {
                 .findByCustomerId(customerId)
                 .orElseThrow(() -> new RuntimeException("Customer chưa thuộc franchise"))
                 .getFranchiseId();
+
+        // Check if there is any ACTIVE promotion for this franchise now
+        LocalDateTime now = LocalDateTime.now();
+        List<?> activePromotions = promotionRepository.findActivePromotionsByFranchiseNow(franchiseId, now, PromotionStatus.ACTIVE);
+        if (activePromotions == null || activePromotions.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
 
         // 2. Lấy reward đúng franchise
         List<Reward> rewards = rewardRepository

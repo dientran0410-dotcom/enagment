@@ -4,7 +4,6 @@ package service.CSFC.CSFC_auth_service.service.imp;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import service.CSFC.CSFC_auth_service.common.client.AuthServiceClient;
 import service.CSFC.CSFC_auth_service.common.exception.InsufficientPointsException;
 import service.CSFC.CSFC_auth_service.common.exception.ResourceNotFoundException;
 import service.CSFC.CSFC_auth_service.mapper.RedemptionMapper;
@@ -20,7 +19,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static service.CSFC.CSFC_auth_service.model.constants.RedemptionStatus.PENDING;
 
@@ -35,7 +33,6 @@ public class RedemptionServiceImpl implements RedemptionService {
     private final RedemptionRepository redemptionRepository;
     private final PointTransactionRepository pointTransactionRepository;
     private final LoyaltyRuleRepository loyaltyRuleRepository;
-    private final AuthServiceClient authServiceClient;
     private final RedemptionMapper redemptionMapper;
 
 
@@ -68,7 +65,12 @@ public class RedemptionServiceImpl implements RedemptionService {
                 .orElseThrow(() -> new RuntimeException("Redeem rule not found"));
 
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expiration = rule.getExpiryDays() != null ? now.plusDays(rule.getExpiryDays()) : null;
+        // expiryDays field was removed from LoyaltyRule. Use rule.endDate if present to determine
+        // the expiry for a generated redemption; otherwise leave it null (no predefined expiry).
+        LocalDateTime expiration = null;
+        if (rule.getEndDate() != null) {
+            expiration = rule.getEndDate();
+        }
 
         //  Trừ điểm của user
         customerFranchise.setCurrentPoints(

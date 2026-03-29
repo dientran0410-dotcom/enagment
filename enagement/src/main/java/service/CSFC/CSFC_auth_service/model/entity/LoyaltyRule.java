@@ -41,9 +41,5 @@ public class LoyaltyRule extends BaseEntity {
 
     @Column(name = "end_date")
     private LocalDateTime endDate;
-
-    @Column(name = "expiry_days")
-    private Integer expiryDays;
-
     // ... các trường start_date, end_date (dùng LocalDateTime)
 }
