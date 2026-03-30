@@ -5,4 +5,8 @@ public class QrGenerationException extends RuntimeException {
     public QrGenerationException(String message) {
         super("QR_GENERATION_ERROR: " + message);
     }
+
+    public QrGenerationException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
