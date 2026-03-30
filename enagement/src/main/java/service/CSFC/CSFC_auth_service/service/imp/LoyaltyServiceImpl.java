@@ -22,6 +22,7 @@ import service.CSFC.CSFC_auth_service.model.entity.*;
 import service.CSFC.CSFC_auth_service.repository.*;
 import service.CSFC.CSFC_auth_service.service.LoyaltyService;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -366,7 +367,7 @@ public class LoyaltyServiceImpl implements LoyaltyService {
                 .amount(-reward.getRequiredPoints())
                 .actionType(ActionType.REDEEM)
                 .referenceId("REWARD" + reward.getId())
-                .expiryDate(null)
+                .expiryDate(LocalDateTime.now().plusDays(5))
                 .build();
 
         pointTransactionRepository.save(pointTransaction);
