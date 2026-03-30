@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import service.CSFC.CSFC_auth_service.model.constants.TierName;
 import service.CSFC.CSFC_auth_service.model.entity.Coupon;
 import service.CSFC.CSFC_auth_service.model.constants.PromotionStatus;
 
@@ -39,38 +40,27 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
 
     // Find active public coupons for customers
     @Query("""
-        SELECT c FROM Coupon c
-        JOIN c.promotion p
-        WHERE c.isPublic = true
-          AND p.status = :status
-          AND (p.startDate IS NULL OR p.startDate <= :now)
-          AND (p.endDate IS NULL OR p.endDate >= :now)
-          AND (c.usageLimit IS NULL OR c.usedCount < c.usageLimit)
-          AND (c.expiredAt IS NULL OR c.expiredAt >= :now)
-        ORDER BY c.createdAt DESC
-    """)
-    List<Coupon> findActiveCouponsForCustomer(@Param("now") LocalDateTime now, @Param("status") PromotionStatus status);
-
-    @Modifying
-    @Query("""
-    UPDATE Coupon c
-    SET c.usedCount = c.usedCount + 1
-    WHERE c.id = :id AND c.usedCount < c.usageLimit
-""")
-    int incrementUsageIfAvailable(@Param("id") Long id);
-
-    @Query("""
     SELECT c FROM Coupon c
     JOIN c.promotion p
-    WHERE p.franchiseId = :franchiseId
+    JOIN c.minTier ct
+    JOIN LoyaltyTier customerTier
+         ON customerTier.name = :customerTierName
+        AND customerTier.franchiseId = :franchiseId
+    WHERE c.isPublic = true
       AND p.status = :status
-      AND c.startAt <= :now
-      AND c.expiredAt >= :now
-      AND c.isPublic = true
+      AND p.franchiseId = :franchiseId
+      AND (p.startDate IS NULL OR p.startDate <= :now)
+      AND (p.endDate IS NULL OR p.endDate >= :now)
+      AND (c.usageLimit IS NULL OR c.usedCount < c.usageLimit)
+      AND (c.expiredAt IS NULL OR c.expiredAt >= :now)
+      AND (ct.minPoint IS NULL OR customerTier.minPoint >= ct.minPoint)
+    ORDER BY c.createdAt DESC
 """)
-    List<Coupon> findActiveByFranchise(
-            @Param("franchiseId") UUID franchiseId,
-            @Param("now") LocalDateTime now,
-            @Param("status") PromotionStatus status
+    List<Coupon> findActiveCouponsForCustomer(
+            UUID franchiseId,
+            LocalDateTime now,
+            PromotionStatus status,
+            TierName customerTierName
     );
+    int incrementUsageIfAvailable(@Param("id") Long id);
 }

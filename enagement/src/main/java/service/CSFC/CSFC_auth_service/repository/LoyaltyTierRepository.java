@@ -21,4 +21,8 @@ public interface LoyaltyTierRepository extends JpaRepository<LoyaltyTier, Long> 
     boolean existsByFranchiseIdAndName(UUID franchiseId, TierName name);
     List<LoyaltyTier> findByFranchiseId(UUID franchiseId);
     Optional<LoyaltyTier> findByFranchiseIdAndName(UUID franchiseId, TierName name);
+    Optional<LoyaltyTier> findTopByFranchiseIdAndMinPointLessThanEqualOrderByMinPointDesc(
+            UUID franchiseId,
+            Integer point
+    );
 }

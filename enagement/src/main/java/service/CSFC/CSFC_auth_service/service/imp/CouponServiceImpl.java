@@ -10,13 +10,11 @@ import service.CSFC.CSFC_auth_service.common.exception.coupon.InvalidCouponExcep
 import service.CSFC.CSFC_auth_service.mapper.CouponMapper;
 import service.CSFC.CSFC_auth_service.model.constants.DiscountType;
 import service.CSFC.CSFC_auth_service.model.constants.PromotionStatus;
+import service.CSFC.CSFC_auth_service.model.constants.TierName;
 import service.CSFC.CSFC_auth_service.model.constants.UsageStatus;
 import service.CSFC.CSFC_auth_service.model.dto.request.*;
 import service.CSFC.CSFC_auth_service.model.dto.response.*;
-import service.CSFC.CSFC_auth_service.model.entity.Coupon;
-import service.CSFC.CSFC_auth_service.model.entity.CouponUsage;
-import service.CSFC.CSFC_auth_service.model.entity.LoyaltyTier;
-import service.CSFC.CSFC_auth_service.model.entity.Promotion;
+import service.CSFC.CSFC_auth_service.model.entity.*;
 import service.CSFC.CSFC_auth_service.repository.*;
 import service.CSFC.CSFC_auth_service.service.CouponCodeGeneratorService;
 import service.CSFC.CSFC_auth_service.service.CouponService;
@@ -383,19 +381,34 @@ public class CouponServiceImpl implements CouponService {
     @Transactional(readOnly = true)
     public List<CouponResponse> getActiveCouponsForCustomer(UUID customerId) {
 
-        // 1. Lấy franchiseId từ bảng customer_franchise (giống Reward)
-        UUID franchiseId = customerFranchiseRepository
+        // 1. Lấy thông tin customer trong franchise
+        CustomerFranchise cf = customerFranchiseRepository
                 .findByCustomerId(customerId)
-                .orElseThrow(() -> new RuntimeException("Customer chưa thuộc franchise"))
-                .getFranchiseId();
+                .orElseThrow(() -> new RuntimeException("Customer chưa thuộc franchise"));
 
-        // 2. Lấy coupon đúng franchise + còn hạn + active
+        UUID franchiseId = cf.getFranchiseId();
+        int currentPoint = cf.getCurrentPoints() == null ? 0 : cf.getCurrentPoints();
+
+        // 2. Tính tier từ point
+        TierName customerTierName = loyaltyTierRepository
+                .findTopByFranchiseIdAndMinPointLessThanEqualOrderByMinPointDesc(
+                        franchiseId, currentPoint
+                )
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy tier phù hợp"))
+                .getName();
+
+        // 3. Lấy coupon hợp lệ theo tier
         LocalDateTime now = LocalDateTime.now();
 
         List<Coupon> coupons = couponRepository
-                .findActiveCouponsForCustomer(now, PromotionStatus.ACTIVE);
+                .findActiveCouponsForCustomer(
+                        franchiseId,
+                        now,
+                        PromotionStatus.ACTIVE,
+                        customerTierName
+                );
 
-        // 3. Map ra response
+        // 4. Map response
         return coupons.stream()
                 .map(couponMapper::toResponse)
                 .toList();

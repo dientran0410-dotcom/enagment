@@ -9,6 +9,7 @@ import service.CSFC.CSFC_auth_service.common.client.ProductClient;
 import service.CSFC.CSFC_auth_service.mapper.CouponMapper;
 import service.CSFC.CSFC_auth_service.model.constants.DiscountType;
 import service.CSFC.CSFC_auth_service.model.constants.PromotionStatus;
+import service.CSFC.CSFC_auth_service.model.constants.TierName;
 import service.CSFC.CSFC_auth_service.model.constants.UsageStatus;
 import service.CSFC.CSFC_auth_service.model.dto.request.ApplyCouponRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.CouponRequest;
@@ -233,8 +234,12 @@ class CouponServiceImplTest {
         when(customerFranchiseRepository.findByCustomerId(customerId))
                 .thenReturn(Optional.of(cf));
 
-        when(couponRepository.findActiveCouponsForCustomer(any(), any()))
-                .thenReturn(List.of(new Coupon()));
+        when(couponRepository.findActiveCouponsForCustomer(
+                any(UUID.class),
+                any(LocalDateTime.class),
+                any(PromotionStatus.class),
+                any(TierName.class)
+        )).thenReturn(List.of(new Coupon()));
 
         when(couponMapper.toResponse(any())).thenReturn(new CouponResponse());
 
