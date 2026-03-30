@@ -50,4 +50,7 @@ public interface LoyaltyService {
 
     // ===== Redeem =====
     RedeemResponse redeem(RedeemRequest redeemRequest,UUID customerId);
+
+    // ===== Earn Points =====
+    void earnPoints(UUID customerId, UUID franchiseId, Integer points, String reason);
 }

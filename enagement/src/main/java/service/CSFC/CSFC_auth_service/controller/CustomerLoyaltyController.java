@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import service.CSFC.CSFC_auth_service.common.config.securitymodel.UserPrincipal;
 import service.CSFC.CSFC_auth_service.model.dto.request.RedeemRequest;
+import service.CSFC.CSFC_auth_service.model.dto.request.EarnPointsRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.ApiResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.CustomerEngagementResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.RedeemResponse;
@@ -130,6 +131,25 @@ public class CustomerLoyaltyController {
                 loyaltyService.redeem(request, customerId);
 
         return ResponseEntity.ok(response);
+    }
+
+    // ================= EARN POINTS =================
+    @PreAuthorize("hasRole('ADMIN') or hasRole('STAFF') or hasRole('CUSTOMER')")
+    @PostMapping("/earn-points/{customerId}/{franchiseId}")
+    public ResponseEntity<ApiResponse<CustomerEngagementResponse>> earnPoints(
+            @PathVariable UUID customerId,
+            @PathVariable UUID franchiseId,
+            @RequestBody EarnPointsRequest request) {
+
+        // Gọi service để cộng điểm (sẽ tự động nâng tier nếu đủ điều kiện)
+        loyaltyService.earnPoints(customerId, franchiseId, request.getPoints(), request.getReason());
+
+        // Lấy thông tin mới sau khi cộng điểm
+        CustomerEngagementResponse updatedEngagement = loyaltyService.getCustomerEngagement(customerId, franchiseId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(updatedEngagement, "Points added successfully. Tier updated automatically.")
+        );
     }
 
     // ================= HELPER METHODS =================
