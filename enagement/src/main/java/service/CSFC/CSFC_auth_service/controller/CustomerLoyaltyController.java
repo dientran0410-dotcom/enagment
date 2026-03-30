@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import service.CSFC.CSFC_auth_service.common.config.securitymodel.UserPrincipal;
 import service.CSFC.CSFC_auth_service.model.dto.request.RedeemRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.EarnPointsRequest;
+import service.CSFC.CSFC_auth_service.model.dto.request.PaymentCheckoutRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.ApiResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.CustomerEngagementResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.RedeemResponse;
@@ -149,6 +150,28 @@ public class CustomerLoyaltyController {
 
         return ResponseEntity.ok(
                 ApiResponse.success(updatedEngagement, "Points added successfully. Tier updated automatically.")
+        );
+    }
+
+    // ================= PAYMENT CHECKOUT & EARN POINTS =================
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @PostMapping("/payment/checkout")
+    public ResponseEntity<ApiResponse<CustomerEngagementResponse>> processPaymentCheckout(
+            @RequestBody PaymentCheckoutRequest request) {
+
+        UUID customerId = getCurrentUserId();
+
+        // Verify that the user can only process payment for themselves
+        if (!customerId.equals(request.getCustomerId())) {
+            throw new AccessDeniedException("Forbidden - Cannot process payment for another customer");
+        }
+
+        // Process payment and earn points
+        CustomerEngagementResponse response = loyaltyService.processPaymentAndEarnPoints(request);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(response, "Payment processed successfully. Points earned: " +
+                    String.format("%.0f", request.getOrderAmount() / 1000))
         );
     }
 

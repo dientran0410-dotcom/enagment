@@ -7,6 +7,7 @@ import service.CSFC.CSFC_auth_service.model.constants.EventType;
 import service.CSFC.CSFC_auth_service.model.constants.TierName;
 import service.CSFC.CSFC_auth_service.model.dto.request.CreateLoyaltyTierRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.LoyaltyRuleRequest;
+import service.CSFC.CSFC_auth_service.model.dto.request.PaymentCheckoutRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.RedeemRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.*;
 
@@ -53,4 +54,13 @@ public interface LoyaltyService {
 
     // ===== Earn Points =====
     void earnPoints(UUID customerId, UUID franchiseId, Integer points, String reason);
+
+    // ===== Payment & Points Earning =====
+    /**
+     * Process payment and automatically earn points based on order amount
+     * Points = orderAmount / 1000
+     * @param request Payment checkout request containing customerId, franchiseId, and orderAmount
+     * @return Updated customer engagement response with new points
+     */
+    CustomerEngagementResponse processPaymentAndEarnPoints(PaymentCheckoutRequest request);
 }

@@ -16,6 +16,7 @@ import service.CSFC.CSFC_auth_service.model.constants.EventType;
 import service.CSFC.CSFC_auth_service.model.constants.TierName;
 import service.CSFC.CSFC_auth_service.model.dto.request.CreateLoyaltyTierRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.LoyaltyRuleRequest;
+import service.CSFC.CSFC_auth_service.model.dto.request.PaymentCheckoutRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.RedeemRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.*;
 import service.CSFC.CSFC_auth_service.model.entity.*;
@@ -466,6 +467,34 @@ public class LoyaltyServiceImpl implements LoyaltyService {
 
         //Tự động nâng tier dựa trên totalEarnedPoints
         updateTierBasedOnPoints(customerFranchise);
+    }
+
+    @Override
+    @Transactional
+    public CustomerEngagementResponse processPaymentAndEarnPoints(PaymentCheckoutRequest request) {
+        UUID customerId = request.getCustomerId();
+        UUID franchiseId = request.getFranchiseId();
+        Double orderAmount = request.getOrderAmount();
+        String orderId = request.getOrderId();
+
+        if (orderAmount == null || orderAmount <= 0) {
+            throw new IllegalArgumentException("Order amount must be greater than 0");
+        }
+
+        // Tính điểm dựa trên công thức: points = orderAmount / 1000
+        Integer pointsToEarn = (int) (orderAmount / 1000);
+
+        // Nếu orderAmount < 1000, vẫn cộng 1 điểm tối thiểu
+        if (pointsToEarn < 1) {
+            pointsToEarn = 1;
+        }
+
+        // Gọi earnPoints để cộng điểm (sẽ tự động nâng tier nếu đủ điều kiện)
+        String reason = orderId != null ? "PAYMENT_" + orderId : "PAYMENT";
+        earnPoints(customerId, franchiseId, pointsToEarn, reason);
+
+        // Lấy thông tin mới sau khi cộng điểm
+        return getCustomerEngagement(customerId, franchiseId);
     }
 
 }
