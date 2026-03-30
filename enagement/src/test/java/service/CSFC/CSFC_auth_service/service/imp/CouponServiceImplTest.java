@@ -33,6 +33,8 @@ import service.CSFC.CSFC_auth_service.repository.LoyaltyTierRepository;
 import service.CSFC.CSFC_auth_service.repository.CouponUsageRepository;
 import service.CSFC.CSFC_auth_service.repository.CustomerFranchiseRepository;
 import service.CSFC.CSFC_auth_service.service.CouponCodeGeneratorService;
+
+import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -455,15 +457,19 @@ class CouponServiceImplTest {
 
     @Test
     void validateCouponForCheckout_nullCoupon_throws() {
-        // use reflection to call private method validateCouponForCheckout
         assertThrows(RuntimeException.class, () -> {
             try {
-                invokePrivate(service, "validateCouponForCheckout",
-                        new Class[]{service.CSFC.CSFC_auth_service.model.entity.Coupon.class, BigDecimal.class},
-                        null, BigDecimal.TEN);
-            } catch (Exception e) {
-                if (e instanceof RuntimeException) throw (RuntimeException) e;
-                throw new RuntimeException(e);
+                // Lấy private method
+                Method method = service.getClass()
+                        .getDeclaredMethod("validateCouponForCheckout", Coupon.class, BigDecimal.class);
+                method.setAccessible(true);
+                // Gọi method với coupon = null
+                method.invoke(service, null, BigDecimal.TEN);
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                if (e.getTargetException() instanceof RuntimeException) {
+                    throw (RuntimeException) e.getTargetException();
+                }
+                throw new RuntimeException(e.getTargetException());
             }
         });
     }
@@ -475,10 +481,12 @@ class CouponServiceImplTest {
             coupon.setDiscountType(DiscountType.FIXED_AMOUNT);
             coupon.setDiscountValue(BigDecimal.TEN);
 
-            Object res = invokePrivate(service, "calculateDiscount",
-                    new Class[]{service.CSFC.CSFC_auth_service.model.entity.Coupon.class, BigDecimal.class},
-                    coupon, BigDecimal.ZERO);
-            BigDecimal discount = (BigDecimal) res;
+            Method method = service.getClass()
+                    .getDeclaredMethod("calculateDiscount", Coupon.class, BigDecimal.class);
+            method.setAccessible(true);
+
+            BigDecimal discount = (BigDecimal) method.invoke(service, coupon, BigDecimal.ZERO);
+
             assertNotNull(discount);
             assertEquals(BigDecimal.ZERO, discount);
         } catch (Exception e) {
@@ -507,15 +515,17 @@ class CouponServiceImplTest {
     void validateCouponForApply_statuses_throwsOrPasses(PromotionStatus status) {
         try {
             Coupon coupon = new Coupon();
-            Promotion p = new Promotion();
-            p.setStatus(status);
-            coupon.setPromotion(p);
+            Promotion promotion = new Promotion();
+            promotion.setStatus(status);
+            coupon.setPromotion(promotion);
 
             if (status == PromotionStatus.ACTIVE) {
                 assertDoesNotThrow(() -> {
                     try {
-                        invokePrivate(service, "validateCouponForApply",
-                                new Class[]{service.CSFC.CSFC_auth_service.model.entity.Coupon.class}, coupon);
+                        Method method = service.getClass()
+                                .getDeclaredMethod("validateCouponForApply", Coupon.class);
+                        method.setAccessible(true);
+                        method.invoke(service, coupon);
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -523,10 +533,16 @@ class CouponServiceImplTest {
             } else {
                 assertThrows(RuntimeException.class, () -> {
                     try {
-                        invokePrivate(service, "validateCouponForApply",
-                                new Class[]{service.CSFC.CSFC_auth_service.model.entity.Coupon.class}, coupon);
+                        Method method = service.getClass()
+                                .getDeclaredMethod("validateCouponForApply", Coupon.class);
+                        method.setAccessible(true);
+                        method.invoke(service, coupon);
+                    } catch (java.lang.reflect.InvocationTargetException e) {
+                        if (e.getTargetException() instanceof RuntimeException) {
+                            throw (RuntimeException) e.getTargetException();
+                        }
+                        throw new RuntimeException(e.getTargetException());
                     } catch (Exception e) {
-                        if (e instanceof RuntimeException) throw (RuntimeException) e;
                         throw new RuntimeException(e);
                     }
                 });
