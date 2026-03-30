@@ -7,6 +7,7 @@ import service.CSFC.CSFC_auth_service.model.constants.EventType;
 import service.CSFC.CSFC_auth_service.model.constants.TierName;
 import service.CSFC.CSFC_auth_service.model.dto.request.CreateLoyaltyTierRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.LoyaltyRuleRequest;
+import service.CSFC.CSFC_auth_service.model.dto.request.OrderPaymentRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.PaymentCheckoutRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.RedeemRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.*;
@@ -63,4 +64,12 @@ public interface LoyaltyService {
      * @return Updated customer engagement response with new points
      */
     CustomerEngagementResponse processPaymentAndEarnPoints(PaymentCheckoutRequest request);
+
+    /**
+     * Process order payment with complete order details and earn points
+     * Points = totalAmount / 1000 (rounded down, minimum 1 point)
+     * @param request Order payment request containing customer, franchise, items, and total amount
+     * @return Updated customer engagement response with new points and points earned information
+     */
+    CustomerEngagementResponse processOrderPayment(OrderPaymentRequest request);
 }

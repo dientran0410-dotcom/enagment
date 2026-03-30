@@ -16,6 +16,7 @@ import service.CSFC.CSFC_auth_service.model.constants.EventType;
 import service.CSFC.CSFC_auth_service.model.constants.TierName;
 import service.CSFC.CSFC_auth_service.model.dto.request.CreateLoyaltyTierRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.LoyaltyRuleRequest;
+import service.CSFC.CSFC_auth_service.model.dto.request.OrderPaymentRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.PaymentCheckoutRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.RedeemRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.*;
@@ -492,6 +493,34 @@ public class LoyaltyServiceImpl implements LoyaltyService {
 
         // Gọi earnPoints để cộng điểm (sẽ tự động nâng tier nếu đủ điều kiện)
         String reason = orderId != null ? "PAYMENT_" + orderId : "PAYMENT";
+        earnPoints(customerId, franchiseId, pointsToEarn, reason);
+
+        // Lấy thông tin mới sau khi cộng điểm
+        return getCustomerEngagement(customerId, franchiseId);
+    }
+
+    @Override
+    @Transactional
+    public CustomerEngagementResponse processOrderPayment(OrderPaymentRequest request) {
+        UUID customerId = request.getCustomerId();
+        UUID franchiseId = request.getFranchiseId();
+        Double totalAmount = request.getTotalAmount();
+        String invoiceId = request.getInvoiceId();
+
+        if (totalAmount == null || totalAmount <= 0) {
+            throw new IllegalArgumentException("Total amount must be greater than 0");
+        }
+
+        // Tính điểm dựa trên công thức: points = totalAmount / 1000
+        Integer pointsToEarn = (int) (totalAmount / 1000);
+
+        // Nếu totalAmount < 1000, vẫn cộng 1 điểm tối thiểu
+        if (pointsToEarn < 1) {
+            pointsToEarn = 1;
+        }
+
+        // Gọi earnPoints để cộng điểm (sẽ tự động nâng tier nếu đủ điều kiện)
+        String reason = invoiceId != null ? "ORDER_" + invoiceId : "ORDER";
         earnPoints(customerId, franchiseId, pointsToEarn, reason);
 
         // Lấy thông tin mới sau khi cộng điểm

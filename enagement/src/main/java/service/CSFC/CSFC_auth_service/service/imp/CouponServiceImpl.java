@@ -485,58 +485,29 @@ public class CouponServiceImpl implements CouponService {
                 .toList();
     }
 
-    private Set<UUID> collectAllVariantIds(OrderCreateRequest request) {
-        Set<UUID> ids = new HashSet<>();
-
-        request.getItems().forEach(item -> {
-            ids.add(item.getVariantId());
-
-            if (item.getAddons() != null) {
-                item.getAddons()
-                        .forEach(addon -> ids.add(addon.getAddonVariantId()));
-            }
-        });
-
-        return ids;
-    }
     private BigDecimal calculateTotalAmount(OrderCreateRequest request) {
-
-        Set<UUID> ids = collectAllVariantIds(request);
-
-        List<ProductVariantDto> variants =
-                productClient.getVariantsByIds(new ArrayList<>(ids));
-
-        Map<UUID, ProductVariantDto> productMap =
-                variants.stream()
-                        .collect(Collectors.toMap(ProductVariantDto::getId, v -> v));
-
         BigDecimal total = BigDecimal.ZERO;
 
         for (OrderItemRequest item : request.getItems()) {
+            if (item.getPrice() != null && item.getQuantity() != null) {
+                BigDecimal itemPrice = BigDecimal.valueOf(item.getPrice());
+                BigDecimal qty = BigDecimal.valueOf(item.getQuantity());
+                BigDecimal itemSubtotal = itemPrice.multiply(qty);
 
-            ProductVariantDto variant =
-                    productMap.get(item.getVariantId());
-
-            BigDecimal qty = BigDecimal.valueOf(item.getQuantity());
-            BigDecimal itemSubtotal =
-                    variant.getPrice().multiply(qty);
-
-            if (item.getAddons() != null) {
-                for (OrderItemAddonRequest addon : item.getAddons()) {
-
-                    ProductVariantDto addonInfo =
-                            productMap.get(addon.getAddonVariantId());
-
-                    BigDecimal addonSubtotal =
-                            addonInfo.getPrice()
-                                    .multiply(BigDecimal.valueOf(addon.getQuantity()))
-                                    .multiply(qty);
-
-                    itemSubtotal = itemSubtotal.add(addonSubtotal);
+                // Handle addons if needed (optional based on FE implementation)
+                if (item.getAddons() != null && !item.getAddons().isEmpty()) {
+                    for (OrderItemAddonRequest addon : item.getAddons()) {
+                        if (addon.getPrice() != null && addon.getQuantity() != null) {
+                            BigDecimal addonPrice = BigDecimal.valueOf(addon.getPrice());
+                            BigDecimal addonQty = BigDecimal.valueOf(addon.getQuantity());
+                            BigDecimal addonSubtotal = addonPrice.multiply(addonQty).multiply(qty);
+                            itemSubtotal = itemSubtotal.add(addonSubtotal);
+                        }
+                    }
                 }
-            }
 
-            total = total.add(itemSubtotal);
+                total = total.add(itemSubtotal);
+            }
         }
 
         return total;

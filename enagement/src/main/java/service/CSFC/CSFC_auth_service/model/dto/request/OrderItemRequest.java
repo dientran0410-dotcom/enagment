@@ -12,12 +12,17 @@ import java.util.UUID;
 @Setter
 public class OrderItemRequest {
 
-    @NotNull(message = "Variant ID is required")
-    private UUID variantId;
+    @NotNull(message = "Product ID is required")
+    private UUID productId;
 
     @NotNull(message = "Quantity is required")
     @Min(value = 1, message = "Quantity must be at least 1")
     private Integer quantity;
+
+    @NotNull(message = "Price is required")
+    @Min(value = 0, message = "Price must be greater than or equal to 0")
+    private Double price;
+
     private List<OrderItemAddonRequest> addons;
 
     private String notes;

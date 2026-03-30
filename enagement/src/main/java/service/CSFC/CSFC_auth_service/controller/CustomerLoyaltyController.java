@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import service.CSFC.CSFC_auth_service.common.config.securitymodel.UserPrincipal;
 import service.CSFC.CSFC_auth_service.model.dto.request.RedeemRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.EarnPointsRequest;
+import service.CSFC.CSFC_auth_service.model.dto.request.OrderPaymentRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.PaymentCheckoutRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.ApiResponse;
 import service.CSFC.CSFC_auth_service.model.dto.response.CustomerEngagementResponse;
@@ -172,6 +173,37 @@ public class CustomerLoyaltyController {
         return ResponseEntity.ok(
                 ApiResponse.success(response, "Payment processed successfully. Points earned: " +
                     String.format("%.0f", request.getOrderAmount() / 1000))
+        );
+    }
+
+    // ================= ORDER PAYMENT & EARN POINTS =================
+    @PreAuthorize("hasRole('CUSTOMER')")
+    @PostMapping("/order/payment")
+    public ResponseEntity<ApiResponse<CustomerEngagementResponse>> processOrderPayment(
+            @RequestBody OrderPaymentRequest request) {
+
+        UUID customerId = getCurrentUserId();
+
+        // Verify that the user can only process payment for themselves
+        if (!customerId.equals(request.getCustomerId())) {
+            throw new AccessDeniedException("Forbidden - Cannot process payment for another customer");
+        }
+
+        // Process order payment and earn points
+        CustomerEngagementResponse response = loyaltyService.processOrderPayment(request);
+
+        // Calculate points earned
+        Integer pointsEarned = (int) (request.getTotalAmount() / 1000);
+        if (pointsEarned < 1) {
+            pointsEarned = 1;
+        }
+
+        return ResponseEntity.ok(
+                ApiResponse.success(response,
+                    String.format("Order payment processed successfully. Points earned: %d. Current points: %d. Total earned points: %d",
+                        pointsEarned,
+                        response.getCurrentPoints(),
+                        response.getTotalEarnedPoints()))
         );
     }
 

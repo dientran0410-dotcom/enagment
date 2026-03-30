@@ -626,14 +626,12 @@ class CouponServiceImplTest {
     void calculateTotalAmount_singleItem_noAddons() {
         // Arrange
         OrderItemRequest item = new OrderItemRequest();
-        item.setVariantId(UUID.randomUUID());
         item.setQuantity(2);
 
         OrderCreateRequest request = new OrderCreateRequest();
         request.setItems(List.of(item));
 
         ProductVariantDto variant = new ProductVariantDto();
-        variant.setId(item.getVariantId());
         variant.setPrice(BigDecimal.valueOf(100));
 
         when(productClient.getVariantsByIds(any())).thenReturn(List.of(variant));
@@ -659,11 +657,9 @@ class CouponServiceImplTest {
             UUID variantId2 = UUID.randomUUID();
 
             OrderItemRequest item1 = new OrderItemRequest();
-            item1.setVariantId(variantId1);
             item1.setQuantity(2);
 
             OrderItemRequest item2 = new OrderItemRequest();
-            item2.setVariantId(variantId2);
             item2.setQuantity(3);
 
             OrderCreateRequest request = new OrderCreateRequest();
@@ -698,11 +694,9 @@ class CouponServiceImplTest {
             UUID addonVariantId = UUID.randomUUID();
 
             OrderItemAddonRequest addon = new OrderItemAddonRequest();
-            addon.setAddonVariantId(addonVariantId);
             addon.setQuantity(1);
 
             OrderItemRequest item = new OrderItemRequest();
-            item.setVariantId(variantId);
             item.setQuantity(2);
             item.setAddons(List.of(addon));
 
@@ -737,15 +731,12 @@ class CouponServiceImplTest {
             UUID addonId2 = UUID.randomUUID();
 
             OrderItemAddonRequest addon1 = new OrderItemAddonRequest();
-            addon1.setAddonVariantId(addonId1);
             addon1.setQuantity(1);
 
             OrderItemAddonRequest addon2 = new OrderItemAddonRequest();
-            addon2.setAddonVariantId(addonId2);
             addon2.setQuantity(2);
 
             OrderItemRequest item = new OrderItemRequest();
-            item.setVariantId(variantId);
             item.setQuantity(2);
             item.setAddons(List.of(addon1, addon2));
 
@@ -786,7 +777,6 @@ class CouponServiceImplTest {
             OrderCreateRequest orderRequest = new OrderCreateRequest();
             OrderItemRequest item = new OrderItemRequest();
             UUID variantId = UUID.randomUUID();
-            item.setVariantId(variantId);
             item.setQuantity(2);
             orderRequest.setItems(List.of(item));
 
@@ -1048,20 +1038,17 @@ class CouponServiceImplTest {
     @Test
     void calculateTotalAmount_itemWithNullAddons() {
         try {
-            UUID variantId = UUID.randomUUID();
+            UUID productId = UUID.randomUUID();
 
             OrderItemRequest item = new OrderItemRequest();
-            item.setVariantId(variantId);
+            item.setProductId(productId);
             item.setQuantity(1);
+            item.setPrice(100.0);
             item.setAddons(null); // no addons
 
             OrderCreateRequest request = new OrderCreateRequest();
             request.setItems(List.of(item));
 
-            ProductVariantDto variant = ProductVariantDto.builder()
-                    .id(variantId).price(BigDecimal.valueOf(100)).build();
-
-            when(productClient.getVariantsByIds(any())).thenReturn(List.of(variant));
 
             BigDecimal total = (BigDecimal) invokePrivate(service, "calculateTotalAmount",
                     new Class[]{OrderCreateRequest.class}, request);
