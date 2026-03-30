@@ -387,15 +387,24 @@ public class CouponServiceImpl implements CouponService {
                 .orElseThrow(() -> new RuntimeException("Customer chưa thuộc franchise"));
 
         UUID franchiseId = cf.getFranchiseId();
-        int currentPoint = cf.getCurrentPoints() == null ? 0 : cf.getCurrentPoints();
+        int totalEarnedPoints = cf.getTotalEarnedPoints() == null ? 0 : cf.getTotalEarnedPoints();
 
         // 2. Tính tier từ point
         TierName customerTierName = loyaltyTierRepository
                 .findTopByFranchiseIdAndMinPointLessThanEqualOrderByMinPointDesc(
-                        franchiseId, currentPoint
+                        franchiseId, totalEarnedPoints
                 )
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy tier phù hợp"))
                 .getName();
+
+        // Danh sách tier hợp lệ để thấy coupon
+        List<TierName> allowedTiers = loyaltyTierRepository
+                .findByFranchiseIdAndMinPointLessThanEqual(
+                        franchiseId, totalEarnedPoints
+                )
+                .stream()
+                .map(LoyaltyTier::getName)
+                .toList();
 
         // 3. Lấy coupon hợp lệ theo tier
         LocalDateTime now = LocalDateTime.now();
@@ -405,7 +414,7 @@ public class CouponServiceImpl implements CouponService {
                         franchiseId,
                         now,
                         PromotionStatus.ACTIVE,
-                        customerTierName
+                        allowedTiers
                 );
 
         // 4. Map response

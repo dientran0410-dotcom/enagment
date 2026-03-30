@@ -238,7 +238,7 @@ class CouponServiceImplTest {
                 any(UUID.class),
                 any(LocalDateTime.class),
                 any(PromotionStatus.class),
-                any(TierName.class)
+                anyList()
         )).thenReturn(List.of(new Coupon()));
 
         when(couponMapper.toResponse(any())).thenReturn(new CouponResponse());

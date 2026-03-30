@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import service.CSFC.CSFC_auth_service.model.constants.TierName;
 import service.CSFC.CSFC_auth_service.model.entity.Coupon;
 import service.CSFC.CSFC_auth_service.model.constants.PromotionStatus;
+import service.CSFC.CSFC_auth_service.model.entity.LoyaltyTier;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,9 +44,6 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
     SELECT c FROM Coupon c
     JOIN c.promotion p
     JOIN c.minTier ct
-    JOIN LoyaltyTier customerTier
-         ON customerTier.name = :customerTierName
-        AND customerTier.franchiseId = :franchiseId
     WHERE c.isPublic = true
       AND p.status = :status
       AND p.franchiseId = :franchiseId
@@ -53,14 +51,14 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
       AND (p.endDate IS NULL OR p.endDate >= :now)
       AND (c.usageLimit IS NULL OR c.usedCount < c.usageLimit)
       AND (c.expiredAt IS NULL OR c.expiredAt >= :now)
-      AND (ct.minPoint IS NULL OR customerTier.minPoint >= ct.minPoint)
+      AND ct.name IN :allowedTiers
     ORDER BY c.createdAt DESC
 """)
     List<Coupon> findActiveCouponsForCustomer(
             UUID franchiseId,
             LocalDateTime now,
             PromotionStatus status,
-            TierName customerTierName
+            List<TierName> allowedTiers
     );
     int incrementUsageIfAvailable(@Param("id") Long id);
 }

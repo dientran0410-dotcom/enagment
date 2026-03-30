@@ -25,4 +25,9 @@ public interface LoyaltyTierRepository extends JpaRepository<LoyaltyTier, Long> 
             UUID franchiseId,
             Integer point
     );
+
+    List<LoyaltyTier> findByFranchiseIdAndMinPointLessThanEqual(
+            UUID franchiseId,
+            Integer point
+    );
 }
