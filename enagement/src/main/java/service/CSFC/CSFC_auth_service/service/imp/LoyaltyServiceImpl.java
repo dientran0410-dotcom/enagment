@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -378,6 +379,26 @@ public class LoyaltyServiceImpl implements LoyaltyService {
                 .build();
     }
 
+    /**
+     * Tự động cập nhật tier cho customer dựa trên totalEarnedPoints
+     * So sánh với các tier requirements của franchise
+     */
+    @Transactional
+    protected void updateTierBasedOnPoints(CustomerFranchise customerFranchise) {
+        UUID franchiseId = customerFranchise.getFranchiseId();
+        Integer totalEarnedPoints = customerFranchise.getTotalEarnedPoints();
+
+        // Tìm tier cao nhất mà customer đạt được dựa trên totalEarnedPoints
+        LoyaltyTier newTier = tierRepository.findHighestTierByPoints(franchiseId, totalEarnedPoints)
+                .orElse(null);
+
+        if (newTier != null && !newTier.getId().equals(customerFranchise.getTier().getId())) {
+            // Tier thay đổi, cập nhật
+            customerFranchise.setTier(newTier);
+            customerFranchiseRepository.save(customerFranchise);
+        }
+    }
+
     public CustomerFranchise createCustomerFranchise(UUID customerIdInput, UUID franchiseId, String jwtToken) {
         // Gọi API lấy thông tin customer để xác thực/sync, không parse id từ response
         ApiResponse<CustomerProfileResponse> profileResponse =
@@ -407,6 +428,44 @@ public class LoyaltyServiceImpl implements LoyaltyService {
         cf.setTotalEarnedPoints(0);
 
         return customerFranchiseRepository.save(cf);
+    }
+
+    //Tự động nâng tier nếu totalEarnedPoints đủ điều kiện + Cộng điểm cho customer
+    @Override
+    @Transactional
+    public void earnPoints(UUID customerId, UUID franchiseId, Integer points, String reason) {
+        CustomerFranchise customerFranchise = customerFranchiseRepository
+                .findByCustomerIdAndFranchiseId(customerId, franchiseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found in this franchise"));
+
+        if (points == null || points <= 0) {
+            throw new IllegalArgumentException("Points must be greater than 0");
+        }
+
+        // Cộng currentPoints
+        int newCurrentPoints = (customerFranchise.getCurrentPoints() == null ? 0 : customerFranchise.getCurrentPoints()) + points;
+        customerFranchise.setCurrentPoints(newCurrentPoints);
+
+        // Cộng totalEarnedPoints
+        int newTotalEarnedPoints = (customerFranchise.getTotalEarnedPoints() == null ? 0 : customerFranchise.getTotalEarnedPoints()) + points;
+        customerFranchise.setTotalEarnedPoints(newTotalEarnedPoints);
+
+        // Lưu customer
+        customerFranchiseRepository.save(customerFranchise);
+
+        // Tạo transaction record
+        PointTransaction pointTransaction = PointTransaction.builder()
+                .customerFranchise(customerFranchise)
+                .amount(points)
+                .actionType(ActionType.EARN)
+                .referenceId(reason != null ? reason : "EARNING")
+                .expiryDate(LocalDateTime.now().plusDays(365)) // 1 năm
+                .build();
+
+        pointTransactionRepository.save(pointTransaction);
+
+        //Tự động nâng tier dựa trên totalEarnedPoints
+        updateTierBasedOnPoints(customerFranchise);
     }
 
 }
