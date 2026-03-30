@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 import service.CSFC.CSFC_auth_service.mapper.RewardMapper;
 import service.CSFC.CSFC_auth_service.model.dto.request.RewardRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.RewardResponse;
+import service.CSFC.CSFC_auth_service.model.entity.Promotion;
 import service.CSFC.CSFC_auth_service.model.entity.Reward;
 import service.CSFC.CSFC_auth_service.repository.CustomerFranchiseRepository;
 import service.CSFC.CSFC_auth_service.repository.PromotionRepository;
@@ -18,6 +19,7 @@ import service.CSFC.CSFC_auth_service.model.constants.PromotionStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.Collections;
 
 @Service
 @RequiredArgsConstructor
@@ -53,9 +55,9 @@ public class RewardServiceImpl implements RewardService {
 
         // Check if there is any ACTIVE promotion for this franchise now
         LocalDateTime now = LocalDateTime.now();
-        List<?> activePromotions = promotionRepository.findActivePromotionsByFranchiseNow(franchiseId, now, PromotionStatus.ACTIVE);
+        List<Promotion> activePromotions = promotionRepository.findActivePromotionsByFranchiseNow(franchiseId, now, PromotionStatus.ACTIVE);
         if (activePromotions == null || activePromotions.isEmpty()) {
-            return java.util.Collections.emptyList();
+            return Collections.emptyList();
         }
 
         // 2. Lấy reward đúng franchise
