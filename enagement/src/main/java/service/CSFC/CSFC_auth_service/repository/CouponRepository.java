@@ -60,5 +60,8 @@ public interface CouponRepository extends JpaRepository<Coupon, Long> {
             PromotionStatus status,
             List<TierName> allowedTiers
     );
+
+    @Modifying
+    @Query("UPDATE Coupon c SET c.usedCount = c.usedCount + 1 WHERE c.id = :id AND (c.usageLimit IS NULL OR c.usedCount < c.usageLimit)")
     int incrementUsageIfAvailable(@Param("id") Long id);
 }

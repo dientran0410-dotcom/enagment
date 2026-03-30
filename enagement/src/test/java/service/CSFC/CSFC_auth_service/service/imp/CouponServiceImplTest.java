@@ -227,25 +227,47 @@ class CouponServiceImplTest {
     @Test
     void getActiveCouponsForCustomer_success() {
         UUID customerId = UUID.randomUUID();
+        UUID franchiseId = UUID.randomUUID();
 
+        // Setup customer franchise with valid totalEarnedPoints
         CustomerFranchise cf = new CustomerFranchise();
-        cf.setFranchiseId(UUID.randomUUID());
+        cf.setFranchiseId(franchiseId);
+        cf.setTotalEarnedPoints(1000); // Must be set to avoid null
 
         when(customerFranchiseRepository.findByCustomerId(customerId))
                 .thenReturn(Optional.of(cf));
 
+        // Setup loyalty tier to match totalEarnedPoints (SILVER: minPoint = 1000)
+        LoyaltyTier tier = new LoyaltyTier();
+        tier.setId(2L);
+        tier.setName(TierName.SILVER);
+        tier.setMinPoint(1000);
+
+        // Mock tier repository to return proper tier
+        when(loyaltyTierRepository.findTopByFranchiseIdAndMinPointLessThanEqualOrderByMinPointDesc(
+                eq(franchiseId), eq(1000)))
+                .thenReturn(Optional.of(tier));
+
+        // Mock coupon repository
+        Coupon coupon = new Coupon();
+        coupon.setId(1L);
         when(couponRepository.findActiveCouponsForCustomer(
                 any(UUID.class),
                 any(LocalDateTime.class),
                 any(PromotionStatus.class),
                 anyList()
-        )).thenReturn(List.of(new Coupon()));
+        )).thenReturn(List.of(coupon));
 
-        when(couponMapper.toResponse(any())).thenReturn(new CouponResponse());
+        // Mock mapper
+        CouponResponse response = new CouponResponse();
+        when(couponMapper.toResponse(any())).thenReturn(response);
 
+        // Act
         List<CouponResponse> res = service.getActiveCouponsForCustomer(customerId);
 
+        // Assert
         assertFalse(res.isEmpty());
+        verify(customerFranchiseRepository).findByCustomerId(customerId);
     }
 
     // ========= getGenerationStats =========
