@@ -73,7 +73,7 @@ public class CouponController {
     }
 
     // ================= Checkout COUPON =================
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('STAFF') or hasRole('ADMIN')")
     @PostMapping("/checkout")
     public ResponseEntity<ApiResponse<BigDecimal>> checkout(
             @RequestBody CheckoutCouponRequest request) {
@@ -90,7 +90,7 @@ public class CouponController {
         );
     }
 
-    @PreAuthorize("hasRole('CUSTOMER')")
+    @PreAuthorize("hasRole('CUSTOMER') or hasRole('STAFF') or hasRole('ADMIN')")
     @GetMapping("/my-applied/{customerId}")
     public ResponseEntity<ApiResponse<List<CouponUsageResponse>>> getByCustomerId(
             @PathVariable UUID customerId) {
