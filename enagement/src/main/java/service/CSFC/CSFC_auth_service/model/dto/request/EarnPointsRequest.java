@@ -9,7 +9,6 @@ import java.util.UUID;
 @Data
 public class EarnPointsRequest {
 
-    @NotNull(message = "Customer franchise ID is required")
     private UUID customerFranchiseId;
 
     @NotNull(message = "Points must not be null")

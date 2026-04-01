@@ -14,6 +14,8 @@ import service.CSFC.CSFC_auth_service.model.constants.TierName;
 import service.CSFC.CSFC_auth_service.model.dto.request.CreateLoyaltyTierRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.LoyaltyRuleRequest;
 import service.CSFC.CSFC_auth_service.model.dto.request.RedeemRequest;
+import service.CSFC.CSFC_auth_service.model.dto.request.PaymentCheckoutRequest;
+import service.CSFC.CSFC_auth_service.model.dto.request.OrderPaymentRequest;
 import service.CSFC.CSFC_auth_service.model.dto.response.*;
 import service.CSFC.CSFC_auth_service.model.entity.CustomerFranchise;
 import service.CSFC.CSFC_auth_service.model.entity.LoyaltyTier;
@@ -1020,6 +1022,666 @@ class LoyaltyServiceImplTest {
         assertEquals(-30, res.get(0).getAmount());
         assertEquals(50, res.get(1).getAmount());
         assertEquals(100, res.get(2).getAmount());
+    }
+
+    // ================= PRIORITY #2: getAllTiers & getAllRules (Easy Wins) =================
+
+    @Test
+    void getAllTiers_success() {
+        LoyaltyTier tier1 = new LoyaltyTier();
+        tier1.setId(1L);
+        tier1.setName(TierName.BRONZE);
+        tier1.setFranchiseId(franchiseId);
+        tier1.setMinPoint(0);
+
+        LoyaltyTier tier2 = new LoyaltyTier();
+        tier2.setId(2L);
+        tier2.setName(TierName.GOLD);
+        tier2.setFranchiseId(franchiseId);
+        tier2.setMinPoint(1000);
+
+        when(tierRepository.findAll()).thenReturn(List.of(tier1, tier2));
+
+        List<LoyaltyTierResponse> res = loyaltyService.getAllTiers();
+
+        assertEquals(2, res.size());
+        assertEquals(TierName.BRONZE, res.get(0).getName());
+        assertEquals(TierName.GOLD, res.get(1).getName());
+    }
+
+    @Test
+    void getAllTiers_empty() {
+        when(tierRepository.findAll()).thenReturn(Collections.emptyList());
+
+        List<LoyaltyTierResponse> res = loyaltyService.getAllTiers();
+
+        assertEquals(0, res.size());
+    }
+
+    @Test
+    void getAllRules_success() {
+        LoyaltyRule rule1 = new LoyaltyRule();
+        rule1.setId(1L);
+        rule1.setName("Order Rule");
+        rule1.setEventType(EventType.ORDER);
+        rule1.setFranchiseId(franchiseId);
+        rule1.setFixedPoints(10);
+
+        LoyaltyRule rule2 = new LoyaltyRule();
+        rule2.setId(2L);
+        rule2.setName("Review Rule");
+        rule2.setEventType(EventType.REVIEW);
+        rule2.setFranchiseId(franchiseId);
+        rule2.setFixedPoints(5);
+
+        when(ruleRepository.findAll()).thenReturn(List.of(rule1, rule2));
+
+        List<LoyaltyRuleResponse> res = loyaltyService.getAllRules();
+
+        assertEquals(2, res.size());
+        assertEquals(EventType.ORDER, res.get(0).getEventType());
+        assertEquals(EventType.REVIEW, res.get(1).getEventType());
+    }
+
+    @Test
+    void getAllRules_empty() {
+        when(ruleRepository.findAll()).thenReturn(Collections.emptyList());
+
+        List<LoyaltyRuleResponse> res = loyaltyService.getAllRules();
+
+        assertEquals(0, res.size());
+    }
+
+    // ================= PRIORITY #1: processPaymentAndEarnPoints (High Coverage) =================
+
+    @Test
+    void processPaymentAndEarnPoints_success_customerFound() {
+        CustomerFranchise cf = new CustomerFranchise();
+        cf.setId(1L);
+        cf.setCustomerId(customerId);
+        cf.setFranchiseId(franchiseId);
+        cf.setCurrentPoints(0);
+        cf.setTotalEarnedPoints(0);
+
+        LoyaltyTier bronzeTier = new LoyaltyTier();
+        bronzeTier.setId(1L);
+        bronzeTier.setName(TierName.BRONZE);
+        cf.setTier(bronzeTier);
+
+        PaymentCheckoutRequest req = new PaymentCheckoutRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setOrderAmount(5000.0);
+        req.setOrderId("ORD123");
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.of(cf));
+        when(customerFranchiseRepository.save(any())).thenReturn(cf);
+        when(pointTransactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(tierRepository.findHighestTierByPoints(franchiseId, 5)).thenReturn(Optional.of(bronzeTier));
+
+        CustomerEngagementResponse res = loyaltyService.processPaymentAndEarnPoints(req);
+
+        assertEquals(customerId, res.getCustomerId());
+        verify(customerFranchiseRepository, org.mockito.Mockito.atLeastOnce()).save(any());
+        verify(pointTransactionRepository).save(any());
+    }
+
+    @Test
+    void processPaymentAndEarnPoints_customerNotFound_throwException() {
+        PaymentCheckoutRequest req = new PaymentCheckoutRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setOrderAmount(1000.0);
+        req.setOrderId("ORD123");
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> loyaltyService.processPaymentAndEarnPoints(req));
+    }
+
+    @Test
+    void processPaymentAndEarnPoints_invalidAmount_throwException() {
+        PaymentCheckoutRequest req = new PaymentCheckoutRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setOrderAmount(0.0);
+        req.setOrderId("ORD123");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> loyaltyService.processPaymentAndEarnPoints(req));
+    }
+
+    @Test
+    void processPaymentAndEarnPoints_negativeAmount_throwException() {
+        PaymentCheckoutRequest req = new PaymentCheckoutRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setOrderAmount(-500.0);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> loyaltyService.processPaymentAndEarnPoints(req));
+    }
+
+    @Test
+    void processPaymentAndEarnPoints_smallAmount_earnMinimumPoint() {
+        CustomerFranchise cf = new CustomerFranchise();
+        cf.setId(1L);
+        cf.setCustomerId(customerId);
+        cf.setFranchiseId(franchiseId);
+        cf.setCurrentPoints(0);
+        cf.setTotalEarnedPoints(0);
+
+        LoyaltyTier bronzeTier = new LoyaltyTier();
+        bronzeTier.setId(1L);
+        bronzeTier.setName(TierName.BRONZE);
+        cf.setTier(bronzeTier);
+
+        PaymentCheckoutRequest req = new PaymentCheckoutRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setOrderAmount(500.0); // < 1000, should earn 1 point
+        req.setOrderId("ORD456");
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.of(cf));
+        when(customerFranchiseRepository.save(any())).thenReturn(cf);
+        when(pointTransactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(tierRepository.findHighestTierByPoints(franchiseId, 1)).thenReturn(Optional.of(bronzeTier));
+
+        CustomerEngagementResponse res = loyaltyService.processPaymentAndEarnPoints(req);
+
+        assertEquals(customerId, res.getCustomerId());
+        verify(pointTransactionRepository).save(any());
+    }
+
+    @Test
+    void processPaymentAndEarnPoints_tierUpgrade() {
+        CustomerFranchise cf = new CustomerFranchise();
+        cf.setId(1L);
+        cf.setCustomerId(customerId);
+        cf.setFranchiseId(franchiseId);
+        cf.setCurrentPoints(0);
+        cf.setTotalEarnedPoints(0);
+
+        LoyaltyTier bronzeTier = new LoyaltyTier();
+        bronzeTier.setId(1L);
+        bronzeTier.setName(TierName.BRONZE);
+
+        LoyaltyTier silverTier = new LoyaltyTier();
+        silverTier.setId(2L);
+        silverTier.setName(TierName.SILVER);
+
+        cf.setTier(bronzeTier);
+
+        PaymentCheckoutRequest req = new PaymentCheckoutRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setOrderAmount(6000.0); // 6 points, potentially tier up
+        req.setOrderId("ORD789");
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.of(cf));
+        when(customerFranchiseRepository.save(any())).thenReturn(cf);
+        when(pointTransactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(tierRepository.findHighestTierByPoints(franchiseId, 6)).thenReturn(Optional.of(silverTier));
+
+        CustomerEngagementResponse res = loyaltyService.processPaymentAndEarnPoints(req);
+
+        assertEquals(customerId, res.getCustomerId());
+        verify(customerFranchiseRepository, org.mockito.Mockito.atLeastOnce()).save(any());
+    }
+
+    @Test
+    void processPaymentAndEarnPoints_nullOrderId() {
+        CustomerFranchise cf = new CustomerFranchise();
+        cf.setId(1L);
+        cf.setCustomerId(customerId);
+        cf.setFranchiseId(franchiseId);
+        cf.setCurrentPoints(0);
+        cf.setTotalEarnedPoints(0);
+
+        LoyaltyTier bronzeTier = new LoyaltyTier();
+        bronzeTier.setId(1L);
+        cf.setTier(bronzeTier);
+
+        PaymentCheckoutRequest req = new PaymentCheckoutRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setOrderAmount(2000.0);
+        req.setOrderId(null); // Null orderId
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.of(cf));
+        when(customerFranchiseRepository.save(any())).thenReturn(cf);
+        when(pointTransactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(tierRepository.findHighestTierByPoints(franchiseId, 2)).thenReturn(Optional.of(bronzeTier));
+
+        CustomerEngagementResponse res = loyaltyService.processPaymentAndEarnPoints(req);
+
+        assertEquals(customerId, res.getCustomerId());
+        verify(pointTransactionRepository).save(any());
+    }
+
+    @Test
+    void processPaymentAndEarnPoints_noTierChange() {
+        CustomerFranchise cf = new CustomerFranchise();
+        cf.setId(1L);
+        cf.setCustomerId(customerId);
+        cf.setFranchiseId(franchiseId);
+        cf.setCurrentPoints(100);
+        cf.setTotalEarnedPoints(100);
+
+        LoyaltyTier bronzeTier = new LoyaltyTier();
+        bronzeTier.setId(1L);
+        bronzeTier.setName(TierName.BRONZE);
+        cf.setTier(bronzeTier);
+
+        PaymentCheckoutRequest req = new PaymentCheckoutRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setOrderAmount(800.0); // Small payment, no tier change
+        req.setOrderId("ORD999");
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.of(cf));
+        when(customerFranchiseRepository.save(any())).thenReturn(cf);
+        when(pointTransactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(tierRepository.findHighestTierByPoints(franchiseId, 101)).thenReturn(Optional.of(bronzeTier));
+
+        CustomerEngagementResponse res = loyaltyService.processPaymentAndEarnPoints(req);
+
+        assertEquals(customerId, res.getCustomerId());
+        verify(pointTransactionRepository).save(any());
+    }
+
+    // ================= PRIORITY #1: processOrderPayment (Similar to processPaymentAndEarnPoints) =================
+
+    @Test
+    void processOrderPayment_success_customerFound() {
+        CustomerFranchise cf = new CustomerFranchise();
+        cf.setId(1L);
+        cf.setCustomerId(customerId);
+        cf.setFranchiseId(franchiseId);
+        cf.setCurrentPoints(0);
+        cf.setTotalEarnedPoints(0);
+
+        LoyaltyTier bronzeTier = new LoyaltyTier();
+        bronzeTier.setId(1L);
+        bronzeTier.setName(TierName.BRONZE);
+        cf.setTier(bronzeTier);
+
+        OrderPaymentRequest req = new OrderPaymentRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setTotalAmount(3000.0);
+        req.setInvoiceId("INV123");
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.of(cf));
+        when(customerFranchiseRepository.save(any())).thenReturn(cf);
+        when(pointTransactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(tierRepository.findHighestTierByPoints(franchiseId, 3)).thenReturn(Optional.of(bronzeTier));
+
+        CustomerEngagementResponse res = loyaltyService.processOrderPayment(req);
+
+        assertEquals(customerId, res.getCustomerId());
+        verify(customerFranchiseRepository, org.mockito.Mockito.atLeastOnce()).save(any());
+        verify(pointTransactionRepository).save(any());
+    }
+
+    @Test
+    void processOrderPayment_customerNotFound_throwException() {
+        OrderPaymentRequest req = new OrderPaymentRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setTotalAmount(1000.0);
+        req.setInvoiceId("INV123");
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class,
+                () -> loyaltyService.processOrderPayment(req));
+    }
+
+    @Test
+    void processOrderPayment_invalidAmount_throwException() {
+        OrderPaymentRequest req = new OrderPaymentRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setTotalAmount(0.0);
+        req.setInvoiceId("INV123");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> loyaltyService.processOrderPayment(req));
+    }
+
+    @Test
+    void processOrderPayment_negativeAmount_throwException() {
+        OrderPaymentRequest req = new OrderPaymentRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setTotalAmount(-1000.0);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> loyaltyService.processOrderPayment(req));
+    }
+
+    @Test
+    void processOrderPayment_smallAmount_earnMinimumPoint() {
+        CustomerFranchise cf = new CustomerFranchise();
+        cf.setId(1L);
+        cf.setCustomerId(customerId);
+        cf.setFranchiseId(franchiseId);
+        cf.setCurrentPoints(0);
+        cf.setTotalEarnedPoints(0);
+
+        LoyaltyTier bronzeTier = new LoyaltyTier();
+        bronzeTier.setId(1L);
+        bronzeTier.setName(TierName.BRONZE);
+        cf.setTier(bronzeTier);
+
+        OrderPaymentRequest req = new OrderPaymentRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setTotalAmount(750.0); // < 1000, should earn 1 point
+        req.setInvoiceId("INV456");
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.of(cf));
+        when(customerFranchiseRepository.save(any())).thenReturn(cf);
+        when(pointTransactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(tierRepository.findHighestTierByPoints(franchiseId, 1)).thenReturn(Optional.of(bronzeTier));
+
+        CustomerEngagementResponse res = loyaltyService.processOrderPayment(req);
+
+        assertEquals(customerId, res.getCustomerId());
+        verify(pointTransactionRepository).save(any());
+    }
+
+    @Test
+    void processOrderPayment_tierUpgrade() {
+        CustomerFranchise cf = new CustomerFranchise();
+        cf.setId(1L);
+        cf.setCustomerId(customerId);
+        cf.setFranchiseId(franchiseId);
+        cf.setCurrentPoints(0);
+        cf.setTotalEarnedPoints(0);
+
+        LoyaltyTier bronzeTier = new LoyaltyTier();
+        bronzeTier.setId(1L);
+        bronzeTier.setName(TierName.BRONZE);
+
+        LoyaltyTier goldTier = new LoyaltyTier();
+        goldTier.setId(3L);
+        goldTier.setName(TierName.GOLD);
+
+        cf.setTier(bronzeTier);
+
+        OrderPaymentRequest req = new OrderPaymentRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setTotalAmount(11000.0); // 11 points, potential tier up
+        req.setInvoiceId("INV789");
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.of(cf));
+        when(customerFranchiseRepository.save(any())).thenReturn(cf);
+        when(pointTransactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(tierRepository.findHighestTierByPoints(franchiseId, 11)).thenReturn(Optional.of(goldTier));
+
+        CustomerEngagementResponse res = loyaltyService.processOrderPayment(req);
+
+        assertEquals(customerId, res.getCustomerId());
+        verify(customerFranchiseRepository, org.mockito.Mockito.atLeastOnce()).save(any());
+    }
+
+    @Test
+    void processOrderPayment_nullInvoiceId() {
+        CustomerFranchise cf = new CustomerFranchise();
+        cf.setId(1L);
+        cf.setCustomerId(customerId);
+        cf.setFranchiseId(franchiseId);
+        cf.setCurrentPoints(0);
+        cf.setTotalEarnedPoints(0);
+
+        LoyaltyTier bronzeTier = new LoyaltyTier();
+        bronzeTier.setId(1L);
+        cf.setTier(bronzeTier);
+
+        OrderPaymentRequest req = new OrderPaymentRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setTotalAmount(4000.0);
+        req.setInvoiceId(null); // Null invoiceId
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.of(cf));
+        when(customerFranchiseRepository.save(any())).thenReturn(cf);
+        when(pointTransactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(tierRepository.findHighestTierByPoints(franchiseId, 4)).thenReturn(Optional.of(bronzeTier));
+
+        CustomerEngagementResponse res = loyaltyService.processOrderPayment(req);
+
+        assertEquals(customerId, res.getCustomerId());
+        verify(pointTransactionRepository).save(any());
+    }
+
+    @Test
+    void processOrderPayment_noTierChange() {
+        CustomerFranchise cf = new CustomerFranchise();
+        cf.setId(1L);
+        cf.setCustomerId(customerId);
+        cf.setFranchiseId(franchiseId);
+        cf.setCurrentPoints(50);
+        cf.setTotalEarnedPoints(50);
+
+        LoyaltyTier bronzeTier = new LoyaltyTier();
+        bronzeTier.setId(1L);
+        bronzeTier.setName(TierName.BRONZE);
+        cf.setTier(bronzeTier);
+
+        OrderPaymentRequest req = new OrderPaymentRequest();
+        req.setCustomerId(customerId);
+        req.setFranchiseId(franchiseId);
+        req.setTotalAmount(600.0); // Small payment, no tier change
+        req.setInvoiceId("INV999");
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.of(cf));
+        when(customerFranchiseRepository.save(any())).thenReturn(cf);
+        when(pointTransactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(tierRepository.findHighestTierByPoints(franchiseId, 51)).thenReturn(Optional.of(bronzeTier));
+
+        CustomerEngagementResponse res = loyaltyService.processOrderPayment(req);
+
+        assertEquals(customerId, res.getCustomerId());
+        verify(pointTransactionRepository).save(any());
+    }
+
+    // ================= PRIORITY #3: Missing branches in earnPoints =================
+
+    @Test
+    void earnPoints_nullPoints_throwException() {
+        earnPoints_commonSetup();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> loyaltyService.earnPoints(customerId, franchiseId, null, "reason"));
+    }
+
+    @Test
+    void earnPoints_zeroPoints_throwException() {
+        earnPoints_commonSetup();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> loyaltyService.earnPoints(customerId, franchiseId, 0, "reason"));
+    }
+
+    @Test
+    void earnPoints_negativePoints_throwException() {
+        earnPoints_commonSetup();
+
+        assertThrows(IllegalArgumentException.class,
+                () -> loyaltyService.earnPoints(customerId, franchiseId, -10, "reason"));
+    }
+
+    @Test
+    void earnPoints_success_withNullPoints() {
+        CustomerFranchise cf = new CustomerFranchise();
+        cf.setId(1L);
+        cf.setCustomerId(customerId);
+        cf.setFranchiseId(franchiseId);
+        cf.setCurrentPoints(null); // Null current points
+        cf.setTotalEarnedPoints(null); // Null total earned
+
+        LoyaltyTier bronzeTier = new LoyaltyTier();
+        bronzeTier.setId(1L);
+        cf.setTier(bronzeTier);
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.of(cf));
+        when(customerFranchiseRepository.save(any())).thenReturn(cf);
+        when(pointTransactionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+        when(tierRepository.findHighestTierByPoints(franchiseId, 100)).thenReturn(Optional.of(bronzeTier));
+
+        loyaltyService.earnPoints(customerId, franchiseId, 100, "EARNING");
+
+        assertEquals(100, cf.getCurrentPoints());
+        assertEquals(100, cf.getTotalEarnedPoints());
+        verify(customerFranchiseRepository).save(any());
+    }
+
+    private void earnPoints_commonSetup() {
+        CustomerFranchise cf = new CustomerFranchise();
+        cf.setId(1L);
+        cf.setCustomerId(customerId);
+        cf.setFranchiseId(franchiseId);
+        cf.setCurrentPoints(0);
+        cf.setTotalEarnedPoints(0);
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.of(cf));
+    }
+
+    // ================= PRIORITY #3: createTier - Missing exception branches =================
+
+    @Test
+    void createTier_nullName_throwException() {
+        CreateLoyaltyTierRequest req = new CreateLoyaltyTierRequest();
+        req.setFranchiseId(franchiseId);
+        req.setName(null);
+        req.setBenefits("Benefits");
+
+        when(tierRepository.existsByFranchiseIdAndName(franchiseId, null))
+                .thenReturn(false);
+
+        // This will throw a NullPointerException from the switch statement
+        assertThrows(Exception.class, () -> loyaltyService.createTier(req));
+    }
+
+    @Test
+    void createTier_silverTier_success() {
+        CreateLoyaltyTierRequest req = new CreateLoyaltyTierRequest();
+        req.setFranchiseId(franchiseId);
+        req.setName(TierName.SILVER);
+        req.setBenefits("Silver Benefits");
+
+        when(tierRepository.existsByFranchiseIdAndName(franchiseId, TierName.SILVER))
+                .thenReturn(false);
+        when(tierRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        LoyaltyTierResponse res = loyaltyService.createTier(req);
+
+        assertEquals(TierName.SILVER, res.getName());
+        assertEquals(500, res.getMinPoint()); // Silver = 500
+    }
+
+    @Test
+    void createTier_platinumTier_success() {
+        CreateLoyaltyTierRequest req = new CreateLoyaltyTierRequest();
+        req.setFranchiseId(franchiseId);
+        req.setName(TierName.PLATINUM);
+        req.setBenefits("VIP Platinum");
+
+        when(tierRepository.existsByFranchiseIdAndName(franchiseId, TierName.PLATINUM))
+                .thenReturn(false);
+        when(tierRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        LoyaltyTierResponse res = loyaltyService.createTier(req);
+
+        assertEquals(TierName.PLATINUM, res.getName());
+        assertEquals(2000, res.getMinPoint()); // Platinum = 2000
+    }
+
+    @Test
+    void createTier_bronzeTier_success() {
+        CreateLoyaltyTierRequest req = new CreateLoyaltyTierRequest();
+        req.setFranchiseId(franchiseId);
+        req.setName(TierName.BRONZE);
+        req.setBenefits("Bronze Benefits");
+
+        when(tierRepository.existsByFranchiseIdAndName(franchiseId, TierName.BRONZE))
+                .thenReturn(false);
+        when(tierRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+        LoyaltyTierResponse res = loyaltyService.createTier(req);
+
+        assertEquals(TierName.BRONZE, res.getName());
+        assertEquals(0, res.getMinPoint()); // Bronze = 0
+    }
+
+    // ================= PRIORITY #3: getCustomerEngagement - Missing exception branches =================
+
+    @Test
+    void getCustomerEngagement_withNullTier() {
+        CustomerFranchise cf = new CustomerFranchise();
+        cf.setId(1L);
+        cf.setCustomerId(customerId);
+        cf.setFranchiseId(franchiseId);
+        cf.setCurrentPoints(100);
+        cf.setTotalEarnedPoints(200);
+        cf.setStatus(CustomerStatus.ACTIVE);
+        cf.setTier(null); // Null tier
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.of(cf));
+
+        CustomerEngagementResponse res = loyaltyService.getCustomerEngagement(customerId, franchiseId);
+
+        assertEquals(100, res.getCurrentPoints());
+        assertEquals(null, res.getTierName()); // Should handle null tier name
+    }
+
+    @Test
+    void getCustomerEngagement_withTimestamps() {
+        CustomerFranchise cf = new CustomerFranchise();
+        cf.setId(1L);
+        cf.setCustomerId(customerId);
+        cf.setFranchiseId(franchiseId);
+        cf.setCurrentPoints(150);
+        cf.setTotalEarnedPoints(300);
+        cf.setStatus(CustomerStatus.ACTIVE);
+
+        LoyaltyTier tier = new LoyaltyTier();
+        tier.setName(TierName.GOLD);
+        cf.setTier(tier);
+
+        LocalDateTime now = LocalDateTime.now();
+        cf.setCreatedAt(now.minusDays(30));
+        cf.setFirstOrderAt(now.minusDays(25));
+        cf.setLastOrderAt(now.minusDays(1));
+
+        when(customerFranchiseRepository.findByCustomerIdAndFranchiseId(customerId, franchiseId))
+                .thenReturn(Optional.of(cf));
+
+        CustomerEngagementResponse res = loyaltyService.getCustomerEngagement(customerId, franchiseId);
+
+        assertEquals(150, res.getCurrentPoints());
+        assertEquals(TierName.GOLD, res.getTierName());
+        assertEquals(CustomerStatus.ACTIVE, res.getStatus());
     }
 }
 

@@ -627,14 +627,11 @@ class CouponServiceImplTest {
         // Arrange
         OrderItemRequest item = new OrderItemRequest();
         item.setQuantity(2);
+        item.setPrice(100.0);
 
         OrderCreateRequest request = new OrderCreateRequest();
         request.setItems(List.of(item));
 
-        ProductVariantDto variant = new ProductVariantDto();
-        variant.setPrice(BigDecimal.valueOf(100));
-
-        when(productClient.getVariantsByIds(any())).thenReturn(List.of(variant));
 
         // Act
         BigDecimal total = null;
@@ -646,41 +643,31 @@ class CouponServiceImplTest {
         }
 
         // Assert: 100 * 2 = 200
-        assertEquals(BigDecimal.valueOf(200), total);
+        assertEquals(BigDecimal.valueOf(200.0), total);
     }
 
     @Test
     void calculateTotalAmount_multipleItems_noAddons() {
         try {
             // Arrange
-            UUID variantId1 = UUID.randomUUID();
-            UUID variantId2 = UUID.randomUUID();
-
             OrderItemRequest item1 = new OrderItemRequest();
             item1.setQuantity(2);
+            item1.setPrice(100.0);
 
             OrderItemRequest item2 = new OrderItemRequest();
             item2.setQuantity(3);
+            item2.setPrice(50.0);
 
             OrderCreateRequest request = new OrderCreateRequest();
             request.setItems(List.of(item1, item2));
 
-            ProductVariantDto.ProductVariantDtoBuilder builder1 = ProductVariantDto.builder();
-            builder1.id(variantId1).price(BigDecimal.valueOf(100));
-            ProductVariantDto variant1 = builder1.build();
-
-            ProductVariantDto.ProductVariantDtoBuilder builder2 = ProductVariantDto.builder();
-            builder2.id(variantId2).price(BigDecimal.valueOf(50));
-            ProductVariantDto variant2 = builder2.build();
-
-            when(productClient.getVariantsByIds(any())).thenReturn(List.of(variant1, variant2));
 
             // Act
             BigDecimal total = (BigDecimal) invokePrivate(service, "calculateTotalAmount",
                     new Class[]{OrderCreateRequest.class}, request);
 
             // Assert: (100*2) + (50*3) = 200 + 150 = 350
-            assertEquals(BigDecimal.valueOf(350), total);
+            assertEquals(BigDecimal.valueOf(350.0), total);
         } catch (Exception e) {
             fail("Should not throw exception", e);
         }
@@ -690,33 +677,25 @@ class CouponServiceImplTest {
     void calculateTotalAmount_itemWithAddons() {
         try {
             // Arrange
-            UUID variantId = UUID.randomUUID();
-            UUID addonVariantId = UUID.randomUUID();
-
             OrderItemAddonRequest addon = new OrderItemAddonRequest();
             addon.setQuantity(1);
+            addon.setPrice(20.0);
 
             OrderItemRequest item = new OrderItemRequest();
             item.setQuantity(2);
+            item.setPrice(100.0);
             item.setAddons(List.of(addon));
 
             OrderCreateRequest request = new OrderCreateRequest();
             request.setItems(List.of(item));
 
-            ProductVariantDto mainVariant = ProductVariantDto.builder()
-                    .id(variantId).price(BigDecimal.valueOf(100)).build();
-
-            ProductVariantDto addonVariant = ProductVariantDto.builder()
-                    .id(addonVariantId).price(BigDecimal.valueOf(20)).build();
-
-            when(productClient.getVariantsByIds(any())).thenReturn(List.of(mainVariant, addonVariant));
 
             // Act
             BigDecimal total = (BigDecimal) invokePrivate(service, "calculateTotalAmount",
                     new Class[]{OrderCreateRequest.class}, request);
 
             // Assert: (100 * 2) + (20 * 1 * 2) = 200 + 40 = 240
-            assertEquals(BigDecimal.valueOf(240), total);
+            assertEquals(BigDecimal.valueOf(240.0), total);
         } catch (Exception e) {
             fail("Should not throw exception", e);
         }
@@ -726,41 +705,29 @@ class CouponServiceImplTest {
     void calculateTotalAmount_multipleItemsWithMultipleAddons() {
         try {
             // Arrange
-            UUID variantId = UUID.randomUUID();
-            UUID addonId1 = UUID.randomUUID();
-            UUID addonId2 = UUID.randomUUID();
-
             OrderItemAddonRequest addon1 = new OrderItemAddonRequest();
             addon1.setQuantity(1);
+            addon1.setPrice(10.0);
 
             OrderItemAddonRequest addon2 = new OrderItemAddonRequest();
             addon2.setQuantity(2);
+            addon2.setPrice(5.0);
 
             OrderItemRequest item = new OrderItemRequest();
             item.setQuantity(2);
+            item.setPrice(100.0);
             item.setAddons(List.of(addon1, addon2));
 
             OrderCreateRequest request = new OrderCreateRequest();
             request.setItems(List.of(item));
 
-            ProductVariantDto mainVariant = ProductVariantDto.builder()
-                    .id(variantId).price(BigDecimal.valueOf(100)).build();
-
-            ProductVariantDto addonVariant1 = ProductVariantDto.builder()
-                    .id(addonId1).price(BigDecimal.valueOf(10)).build();
-
-            ProductVariantDto addonVariant2 = ProductVariantDto.builder()
-                    .id(addonId2).price(BigDecimal.valueOf(5)).build();
-
-            when(productClient.getVariantsByIds(any()))
-                    .thenReturn(List.of(mainVariant, addonVariant1, addonVariant2));
 
             // Act
             BigDecimal total = (BigDecimal) invokePrivate(service, "calculateTotalAmount",
                     new Class[]{OrderCreateRequest.class}, request);
 
             // Assert: (100*2) + (10*1*2) + (5*2*2) = 200 + 20 + 20 = 240
-            assertEquals(BigDecimal.valueOf(240), total);
+            assertEquals(BigDecimal.valueOf(240.0), total);
         } catch (Exception e) {
             fail("Should not throw exception", e);
         }
@@ -776,15 +743,10 @@ class CouponServiceImplTest {
 
             OrderCreateRequest orderRequest = new OrderCreateRequest();
             OrderItemRequest item = new OrderItemRequest();
-            UUID variantId = UUID.randomUUID();
             item.setQuantity(2);
+            item.setPrice(500.0);
             orderRequest.setItems(List.of(item));
 
-            // Mock variant data
-            ProductVariantDto variant = ProductVariantDto.builder()
-                    .id(variantId).price(BigDecimal.valueOf(500)).build();
-
-            when(productClient.getVariantsByIds(any())).thenReturn(List.of(variant));
 
             // Setup coupon
             Coupon coupon = new Coupon();
@@ -822,7 +784,7 @@ class CouponServiceImplTest {
             BigDecimal finalAmount = service.checkoutCoupon(customerId, couponCode, orderRequest);
 
             // Assert: totalAmount = 500*2 = 1000, discount = 100, final = 900
-            assertEquals(BigDecimal.valueOf(900), finalAmount);
+            assertEquals(BigDecimal.valueOf(900.0), finalAmount);
             verify(couponUsageRepository).save(any());
         } catch (Exception e) {
             fail("Should not throw exception", e);
@@ -912,9 +874,6 @@ class CouponServiceImplTest {
         when(couponUsageRepository.findByCustomerIdAndCouponIdAndStatus(
                 customerId, coupon.getId(), UsageStatus.PENDING))
                 .thenReturn(Optional.of(usage));
-
-        // Mock calculateTotalAmount to return valid amount
-        when(productClient.getVariantsByIds(any())).thenReturn(List.of());
 
         // Mock increment to return 0 (limit exceeded)
         when(couponRepository.incrementUsageIfAvailable(coupon.getId())).thenReturn(0);
@@ -1049,11 +1008,10 @@ class CouponServiceImplTest {
             OrderCreateRequest request = new OrderCreateRequest();
             request.setItems(List.of(item));
 
-
             BigDecimal total = (BigDecimal) invokePrivate(service, "calculateTotalAmount",
                     new Class[]{OrderCreateRequest.class}, request);
 
-            assertEquals(BigDecimal.valueOf(100), total);
+            assertEquals(BigDecimal.valueOf(100.0), total);
         } catch (Exception e) {
             fail("Should not throw exception", e);
         }
@@ -1065,7 +1023,6 @@ class CouponServiceImplTest {
             OrderCreateRequest request = new OrderCreateRequest();
             request.setItems(List.of());
 
-            when(productClient.getVariantsByIds(any())).thenReturn(List.of());
 
             BigDecimal total = (BigDecimal) invokePrivate(service, "calculateTotalAmount",
                     new Class[]{OrderCreateRequest.class}, request);
